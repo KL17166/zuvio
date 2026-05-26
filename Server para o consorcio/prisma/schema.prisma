@@ -1,0 +1,265 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  cpf           String    @unique
+  birthDate     DateTime?
+  phone         String?
+  passwordHash  String
+  role          String    @default("CLIENT") // MASTER, MANAGER, SUPPORT, CLIENT
+  twoFactorSecret String? // Segredo 2FA local
+  twoFactorEnabled Boolean @default(false)
+  address       String?   // JSON stringified address
+  documentFrontUrl String?
+  documentBackUrl  String?
+  selfieUrl        String?
+  
+  // KYC Verification
+  kycStatus       String    @default("PENDING") // PENDING, SUBMITTED, APPROVED, REJECTED
+  kycReviewedAt   DateTime?
+  kycReviewedBy   String?   // Admin userId who reviewed
+  kycRejectReason String?
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  subscriptions Subscription[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+model Product {
+  id            String    @id @default(uuid())
+  name          String
+  description   String
+  type          String    // MOTO, CARRO, CARTA_CREDITO, ELETRONICO, IMOVEL, SERVICO
+  category      String    // Sub-category: sport, sedan, gaming, reforma, etc.
+  imageUrl      String
+  imageUrls     String    // JSON stringified array of URLs
+  price         Decimal
+  active        Boolean   @default(true)
+  isFeatured    Boolean   @default(false)
+  isPopular     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Universal optional fields
+  brand         String?
+  model         String?
+  year          Int?
+
+  // Flexible specs — JSON with type-specific details
+  // For MOTO: { displacement, power, torque, transmission, engineType, ... }
+  // For CARRO: { motor, potencia, cambio, combustivel, portas, ... }
+  // For CARTA_CREDITO: { finalidade, restricoes, ... }
+  // For ELETRONICO: { processador, ram, armazenamento, ... }
+  specs         String?
+
+  // Auto-generation configuration
+  minDuration   Int       @default(12)
+  maxDuration   Int       @default(60)
+  adminFeeRate  Decimal   @default(15.0)
+
+  plans         ConsortiumPlan[]
+
+  @@map("products")
+}
+
+model ConsortiumPlan {
+  id              String    @id @default(uuid())
+  name            String
+  durationMonths  Int
+  adminFeeRate    Decimal   // Taxa administrativa % (ex: 15.0)
+  fundRate        Decimal   // Fundo de reserva % (ex: 2.0)
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id])
+  active          Boolean   @default(true)
+  
+  subscriptions   Subscription[]
+
+  @@map("consortium_plans")
+}
+
+model Subscription {
+  id                String    @id @default(uuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId            String
+  plan              ConsortiumPlan @relation(fields: [planId], references: [id])
+  
+  // Consortium Info
+  groupNumber       String    // Grupo do consórcio
+  quotaNumber       String    // Cota do consórcio
+  creditValue       Decimal   // Valor do crédito/bem
+  
+  status            String    @default("PENDING") // PENDING, PENDING_KYC, ACTIVE, CONTEMPLATED, COMPLETED, CANCELLED
+  contemplated      Boolean   @default(false)
+  contemplationDate DateTime?
+  contemplatedDate DateTime?
+  contemplationType String?   // BID, DRAW, DIRECT (lance, sorteio, direto)
+  
+  // Digital Signature
+  termsAccepted     Boolean   @default(false)
+  termsAcceptedAt   DateTime?
+  termsIpAddress    String?
+  
+  balanceDue        Decimal   // Quanto falta pagar
+  paidInstallments  Int       @default(0)
+  totalInstallments Int       // Total de parcelas do plano
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  installments      Installment[]
+  bids              Bid[]
+
+  @@map("subscriptions")
+}
+
+model Installment {
+  id              String    @id @default(uuid())
+  idTokenPay      String    @unique @default(uuid()) // Signed payment token (client+contract+installment)
+  subscriptionId  String
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  
+  number          Int       // Parcela 1, 2, 3...
+  amount          Decimal
+  dueDate         DateTime
+  status          String    @default("PENDING") // PENDING, PAID, OVERDUE, CANCELLED, REFUNDED
+  paymentDate     DateTime?
+  paymentMethod   String?   // PIX, BOLETO, CARTAO, DINHEIRO
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([idTokenPay])
+  @@map("installments")
+}
+
+model Bid {
+  id              String    @id @default(uuid())
+  subscriptionId  String
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  
+  type            String    // FREE (Lance Livre), FIXED (Lance Fixo)
+  percentage      Decimal   // Percentual oferecido (5% a 50%)
+  amount          Decimal   // Valor calculado do lance
+  
+  status          String    @default("PENDING") // PENDING, APPROVED, REJECTED, CONTEMPLATED
+  isWinner        Boolean   @default(false)
+  
+  drawDate        DateTime? // Data do sorteio onde este lance participou
+  contemplatedDate DateTime? // Data em que foi contemplado
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("bids")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String   // LOGIN, UPDATE_PRICE, CREATE_USER, CONTEMPLATE_BID, etc
+  resource    String   // table name or entity
+  details     String?  // JSON details
+  ipAddress   String?
+  timestamp   DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+// ========================================
+// SECURITY - Threat Detection System
+// ========================================
+
+model SecurityThreat {
+  id          String   @id @default(uuid())
+  ipAddress   String
+  deviceId    String?
+  deviceModel String?
+  userId      String?
+  
+  threatType  String   // HONEYPOT, BRUTE_FORCE, IDOR, INJECTION, INVALID_TOKEN, RATE_LIMIT
+  threatScore Int      // Pontuação da ameaça
+  requestPath String
+  requestMethod String
+  userAgent   String?
+  details     String?  // JSON com detalhes do ataque
+  
+  blocked     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@map("security_threats")
+}
+
+model BlockedDevice {
+  id          String    @id @default(uuid())
+  deviceId    String?
+  ipAddress   String?
+  reason      String
+  threatScore Int       @default(0)
+  
+  permanent   Boolean   @default(true)  // Só admin pode desbloquear
+  active      Boolean   @default(true)
+  unblockedAt DateTime?
+  unblockedBy String?
+  
+  blockedAt   DateTime  @default(now())
+
+  @@unique([deviceId])
+  @@map("blocked_devices")
+}
+
+// ========================================
+// PAYMENT GATEWAY CONFIGURATION
+// ========================================
+
+model GatewayConfig {
+  id            String   @id @default(uuid())
+  name          String   @unique  // "pixgo", "sigilopay"
+  displayName   String             // "PixGo", "SigiloPay"
+  enabled       Boolean  @default(false)
+  apiKey        String?            // API Key do gateway
+  apiSecret     String?            // Secret/Token adicional
+  webhookSecret String?            // Webhook secret para validação
+  baseUrl       String?            // URL base da API
+  environment   String   @default("sandbox") // "sandbox" ou "production"
+  platformId    String?            // ID da plataforma (SigiloPay)
+  
+  // Quais métodos de pagamento este gateway suporta
+  supportsPix     Boolean @default(true)
+  supportsBoleto  Boolean @default(false)
+  supportsCard    Boolean @default(false)
+  
+  // Definir como gateway padrão para cada método
+  isDefaultPix    Boolean @default(false)
+  isDefaultBoleto Boolean @default(false)
+  isDefaultCard   Boolean @default(false)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("gateway_configs")
+}
+
+model WebhookLog {
+  id          String   @id @default(uuid())
+  signature   String   @unique
+  provider    String   // "pixgo", "sigilopay"
+  payload     String?  // Optional payload dump for debug
+  processedAt DateTime @default(now())
+
+  @@map("webhook_logs")
+}

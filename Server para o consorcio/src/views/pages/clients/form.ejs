@@ -1,0 +1,242 @@
+<%- include('../../partials/header') %>
+
+    <%- include('../../partials/sidebar', { path: '/clients' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title"><%= editing ? 'Editar Cliente' : 'Novo Cliente' %></h1>
+                    <p class="text-muted mb-0">
+                        <% if (editing) { %>
+                            Atualize os dados de <%= client.name %>
+                        <% } else { %>
+                            Preencha os dados para cadastrar um novo cliente
+                        <% } %>
+                    </p>
+                </div>
+                <div class="top-bar-actions">
+                    <% if (editing) { %>
+                        <a href="/admin/clients/<%= client.id %>" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Ver Perfil
+                        </a>
+                    <% } else { %>
+                        <a href="/admin/clients" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Voltar
+                        </a>
+                    <% } %>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="bi bi-moon-stars" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            <% if (typeof error_msg !=='undefined' && error_msg && error_msg.length > 0) { %>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <%= error_msg %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+
+            <div class="row g-4">
+                <!-- Left Column: Avatar Card -->
+                <% if (editing) { %>
+                <div class="col-md-3">
+                    <div class="premium-info-card text-center p-4">
+                        <div class="user-avatar mx-auto mb-3"
+                            style="width: 100px; height: 100px; font-size: 2.5rem;
+                                   background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+                                   color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+                                   box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);">
+                            <%= client.name.charAt(0).toUpperCase() %>
+                        </div>
+                        <h5 class="mb-1" style="color: var(--text-primary);"><%= client.name %></h5>
+                        <p class="text-muted small mb-1"><%= client.email %></p>
+                        <p class="mb-3">
+                            <span class="badge-premium" style="font-family: monospace;">
+                                <%= client.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') %>
+                            </span>
+                        </p>
+                        <hr style="border-color: var(--border-color); opacity: 0.3;">
+                        <div class="text-start">
+                            <small class="text-muted d-block mb-1">
+                                <i class="bi bi-calendar3 me-1"></i>Cliente desde
+                            </small>
+                            <strong style="color: var(--text-primary);">
+                                <%= new Date(client.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }) %>
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+                <% } %>
+
+                <!-- Right Column: Form -->
+                <div class="<%= editing ? 'col-md-9' : 'col-12' %>">
+                    <div class="premium-info-card">
+                        <div class="card-header-premium">
+                            <h5 class="mb-0">
+                                <i class="bi bi-person-vcard me-2"></i>
+                                <%= editing ? 'Dados do Cliente' : 'Dados do Novo Cliente' %>
+                            </h5>
+                        </div>
+                        <div class="p-4">
+                            <form action="/admin/clients/<%= editing ? client.id + '/edit' : '' %>" method="POST" id="clientForm">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+                                <!-- Dados Pessoais -->
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">
+                                            <i class="bi bi-person me-1 text-primary"></i>Nome Completo *
+                                        </label>
+                                        <input type="text" name="name" class="form-control"
+                                            value="<%= editing ? client.name : '' %>" required
+                                            placeholder="Nome completo">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">
+                                            <i class="bi bi-envelope me-1 text-primary"></i>Email *
+                                        </label>
+                                        <input type="email" name="email" class="form-control"
+                                            value="<%= editing ? client.email : '' %>" required
+                                            placeholder="email@exemplo.com">
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">
+                                            <i class="bi bi-credit-card me-1 text-primary"></i>CPF *
+                                        </label>
+                                        <% if (editing) { %>
+                                            <input type="text" class="form-control" style="opacity: 0.7;"
+                                                value="<%= client.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') %>"
+                                                readonly>
+                                            <small class="text-muted">
+                                                <i class="bi bi-lock me-1"></i>CPF não pode ser alterado
+                                            </small>
+                                        <% } else { %>
+                                            <input type="text" name="cpf" class="form-control cpf-mask"
+                                                placeholder="000.000.000-00" required maxlength="14">
+                                        <% } %>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">
+                                            <i class="bi bi-phone me-1 text-primary"></i>Telefone
+                                        </label>
+                                        <input type="text" name="phone" class="form-control phone-mask"
+                                            value="<%= editing ? (client.phone || '') : '' %>"
+                                            placeholder="(00) 00000-0000">
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">
+                                            <i class="bi bi-calendar-date me-1 text-primary"></i>Data de Nascimento
+                                        </label>
+                                        <input type="date" name="birthDate" class="form-control"
+                                            value="<%= editing && client.birthDate ? new Date(client.birthDate).toISOString().split('T')[0] : '' %>">
+                                    </div>
+                                </div>
+
+                                <!-- Endereço -->
+                                <%
+                                    let parsedAddr = {};
+                                    if (editing) {
+                                        try {
+                                            if (client.address) {
+                                                if (client.address.startsWith('{')) {
+                                                    parsedAddr = JSON.parse(client.address);
+                                                } else {
+                                                    parsedAddr = { street: client.address };
+                                                }
+                                            }
+                                        } catch (e) {
+                                            parsedAddr = { street: client.address };
+                                        }
+                                    }
+                                %>
+
+                                <div class="mt-4 mb-3 d-flex align-items-center">
+                                    <div style="width: 35px; height: 35px; border-radius: 10px;
+                                                background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+                                                display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                                        <i class="bi bi-geo-alt" style="color: var(--success-color); font-size: 1.1rem;"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0" style="color: var(--text-primary);">Endereço</h6>
+                                        <small class="text-muted">Preencha o CEP para autocompletar</small>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label">CEP</label>
+                                        <div class="input-group">
+                                            <input type="text" name="address_cep" id="cep" class="form-control"
+                                                value="<%= parsedAddr.cep || '' %>" placeholder="00000-000" maxlength="9">
+                                            <span class="input-group-text" id="cepSpinner" style="display:none;">
+                                                <i class="bi bi-arrow-clockwise spin"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-7">
+                                        <label class="form-label">Rua / Logradouro</label>
+                                        <input type="text" name="address_street" id="logradouro" class="form-control"
+                                            value="<%= parsedAddr.street || '' %>" placeholder="Rua, Avenida...">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Número</label>
+                                        <input type="text" name="address_number" id="addressNumber" class="form-control"
+                                            value="<%= parsedAddr.number || '' %>" placeholder="Nº">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Complemento</label>
+                                        <input type="text" name="address_complement" class="form-control"
+                                            value="<%= parsedAddr.complement || '' %>" placeholder="Apto, Bloco...">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Bairro</label>
+                                        <input type="text" name="address_neighborhood" id="bairro" class="form-control"
+                                            value="<%= parsedAddr.neighborhood || '' %>">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Cidade</label>
+                                        <input type="text" name="address_city" id="cidade" class="form-control"
+                                            value="<%= parsedAddr.city || '' %>">
+                                    </div>
+                                    <div class="col-md-1">
+                                        <label class="form-label">UF</label>
+                                        <input type="text" name="address_state" id="uf" class="form-control text-center"
+                                            value="<%= parsedAddr.state || '' %>" maxlength="2"
+                                            style="text-transform: uppercase;">
+                                    </div>
+                                </div>
+
+                                <hr class="my-4" style="border-color: var(--border-color); opacity: 0.3;">
+
+                                <!-- Actions -->
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <% if (editing) { %>
+                                        <a href="/admin/clients/<%= client.id %>" class="btn btn-outline-secondary">
+                                            <i class="bi bi-x-lg me-2"></i>Cancelar
+                                        </a>
+                                    <% } else { %>
+                                        <a href="/admin/clients" class="btn btn-outline-secondary">
+                                            <i class="bi bi-x-lg me-2"></i>Cancelar
+                                        </a>
+                                    <% } %>
+                                    <button type="submit" class="btn btn-primary" style="min-width: 200px;">
+                                        <i class="bi bi-check-lg me-2"></i>
+                                        <%= editing ? 'Salvar Alterações' : 'Cadastrar Cliente' %>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+<%- include('../../partials/footer') %>

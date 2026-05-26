@@ -1,0 +1,136 @@
+<%- include('../../partials/header') %>
+
+    <%- include('../../partials/sidebar', { path: '/bids' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title">Detalhes do Lance</h1>
+                    <p class="text-muted mb-0">Lance #<%= bid.id.substring(0, 8) %></p>
+                </div>
+                <div class="top-bar-actions">
+                    <a href="/admin/bids" class="btn btn-outline-secondary shadow-sm" style="border-radius: 10px;">
+                        <i class="bi bi-arrow-left me-2"></i>Voltar
+                    </a>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="bi bi-moon-stars" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <!-- Bid Info -->
+                <div class="col-md-6">
+                    <div class="premium-info-card">
+                        <div class="card-header-premium">
+                            <i class="bi bi-lightning-fill text-warning me-2"></i>
+                            Informações do Lance
+                        </div>
+                        <div class="p-4">
+                            <div class="mb-3">
+                                <div class="info-label">Status</div>
+                                <div>
+                                    <% if (bid.status==='PENDING') { %>
+                                        <span class="badge-premium" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2);"><i class="bi bi-clock-fill"></i>Pendente</span>
+                                    <% } else if (bid.status==='APPROVED') { %>
+                                        <span class="badge-premium" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2);"><i class="bi bi-check-circle-fill"></i>Aprovado</span>
+                                    <% } else if (bid.status==='REJECTED') { %>
+                                        <span class="badge-premium" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);"><i class="bi bi-x-circle-fill"></i>Rejeitado</span>
+                                    <% } else if (bid.status==='WINNER') { %>
+                                        <span class="badge-premium" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.2);"><i class="bi bi-trophy-fill"></i>Vencedor</span>
+                                    <% } %>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="info-label">Valor do Lance</div>
+                                <h3 style="color: var(--success-color); font-weight: 800;">
+                                    R$ <%= Number(bid.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                </h3>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="info-label">Tipo</div>
+                                <div>
+                                    <% if (bid.type==='FIXED') { %>
+                                        <span class="badge-premium" style="background: rgba(13, 110, 253, 0.1); color: #0d6efd; border: 1px solid rgba(13, 110, 253, 0.2);">Fixo</span>
+                                    <% } else if (bid.type==='FREE') { %>
+                                        <span class="badge-premium" style="background: rgba(6, 182, 212, 0.1); color: #0891b2; border: 1px solid rgba(6, 182, 212, 0.2);">Livre</span>
+                                    <% } else if (bid.type==='EMBEDDED') { %>
+                                        <span class="badge-premium" style="background: rgba(245, 158, 11, 0.1); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2);"><i class="bi bi-box-arrow-in-down-right"></i>Embutido</span>
+                                    <% } else { %>
+                                        <span class="badge-premium" style="background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-color);"><%= bid.type %></span>
+                                    <% } %>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="info-label">Data do Lance</div>
+                                <p class="mb-0"><i class="bi bi-calendar3 me-1 text-muted"></i><%= new Date(bid.createdAt).toLocaleString('pt-BR') %></p>
+                            </div>
+
+                            <% if (bid.status==='PENDING') { %>
+                                <hr style="border-color: var(--border-color);">
+                                <div class="d-flex gap-2">
+                                    <form action="/admin/bids/<%= bid.id %>/approve" method="POST" class="flex-fill">
+                                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                        <button type="submit" class="btn btn-success w-100" style="border-radius: 10px;">
+                                            <i class="bi bi-check-lg me-2"></i>Aprovar Lance
+                                        </button>
+                                    </form>
+                                    <form action="/admin/bids/<%= bid.id %>/reject" method="POST" class="flex-fill">
+                                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                        <button type="submit" class="btn btn-danger w-100" style="border-radius: 10px;">
+                                            <i class="bi bi-x-lg me-2"></i>Rejeitar
+                                        </button>
+                                    </form>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Client Info -->
+                <div class="col-md-6">
+                    <div class="premium-info-card">
+                        <div class="card-header-premium">
+                            <i class="bi bi-person-fill text-primary me-2"></i>
+                            Cliente e Contrato
+                        </div>
+                        <div class="p-4">
+                            <div class="mb-3">
+                                <div class="info-label">Cliente</div>
+                                <p class="mb-0 fw-bold" style="font-size: 1.1rem;"><%= bid.subscription.user.name %></p>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="info-label">CPF</div>
+                                <p class="mb-0"><code style="background: var(--bg-secondary); padding: 0.2rem 0.5rem; border-radius: 4px;"><%= bid.subscription.user.cpf %></code></p>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="info-label">Produto Deste Plano</div>
+                                <p class="mb-0"><%= bid.subscription.plan.product.name %></p>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="info-label">Grupo/Cota</div>
+                                <p class="mb-0">
+                                    <span class="badge" style="background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-color);">
+                                        G:<%= bid.subscription.groupNumber || '-' %> / C:<%= bid.subscription.quotaNumber || '-' %>
+                                    </span>
+                                </p>
+                            </div>
+
+                            <a href="/admin/contracts/<%= bid.subscription.id %>" class="btn btn-outline-primary w-100 mt-2" style="border-radius: 10px;">
+                                <i class="bi bi-file-text me-2"></i>Ver Contrato
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-5"></div>
+        </div>
+
+<%- include('../../partials/footer') %>

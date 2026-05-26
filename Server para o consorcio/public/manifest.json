@@ -1,0 +1,10 @@
+{
+  "name": "Katari - Painel Admin",
+  "short_name": "Katari Admin",
+  "description": "Painel administrativo do consórcio Katari",
+  "start_url": "/admin/dashboard",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#6366f1",
+  "icons": []
+}

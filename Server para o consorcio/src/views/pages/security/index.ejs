@@ -1,0 +1,286 @@
+<%- include('../partials/header') %>
+
+    <%- include('../partials/sidebar', { path: '/security' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title">🛡️ Segurança</h1>
+                    <p class="text-muted mb-0">Monitoramento de ameaças e dispositivos bloqueados</p>
+                </div>
+                <div class="top-bar-actions">
+                    <% if (user) { %>
+                        <div class="user-info">
+                            <div class="user-avatar">
+                                <%= user.name.charAt(0).toUpperCase() %>
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; font-size: 0.9rem;">
+                                    <%= user.name %>
+                                </div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Administrador</div>
+                            </div>
+                        </div>
+                        <% } %>
+                            <button class="theme-toggle" onclick="toggleTheme()">
+                                <i class="bi bi-moon-stars" id="themeIcon"></i>
+                            </button>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            <% if (success_msg && success_msg.length> 0) { %>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <%= success_msg %>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <% } %>
+
+                    <% if (error_msg && error_msg.length> 0) { %>
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <%= error_msg %>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        <% } %>
+
+                            <!-- Stats Cards -->
+                            <div class="row g-4 mb-4">
+                                <div class="col-md-3">
+                                    <div class="premium-stat-card p-4">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <div class="info-label">Dispositivos Bloqueados</div>
+                                                <div style="font-size: 1.8rem; font-weight: 800; line-height: 1; color: #ef4444;">
+                                                    <%= blockedCount %>
+                                                </div>
+                                                <small class="text-muted mt-2 d-block">Acesso restrito</small>
+                                            </div>
+                                            <div class="stat-icon-wrapper" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+                                                <i class="bi bi-shield-x"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="premium-stat-card p-4">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <div class="info-label">Ameaças (24h)</div>
+                                                <div style="font-size: 1.8rem; font-weight: 800; line-height: 1; color: #f59e0b;">
+                                                    <%= threatsToday %>
+                                                </div>
+                                                <small class="text-muted mt-2 d-block">Eventos suspeitos</small>
+                                            </div>
+                                            <div class="stat-icon-wrapper" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                                                <i class="bi bi-exclamation-octagon"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="premium-stat-card p-4">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <div class="info-label">Honeypots Ativados</div>
+                                                <div style="font-size: 1.8rem; font-weight: 800; line-height: 1; color: #6366f1;">
+                                                    <%= honeypotHits %>
+                                                </div>
+                                                <small class="text-muted mt-2 d-block">Armadilhas acionadas</small>
+                                            </div>
+                                            <div class="stat-icon-wrapper" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">
+                                                <i class="bi bi-bug"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="premium-stat-card p-4">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <div class="info-label">Score Bloqueado</div>
+                                                <div style="font-size: 1.8rem; font-weight: 800; line-height: 1; color: #10b981;">
+                                                    <%= totalBlockedScore %>
+                                                </div>
+                                                <small class="text-muted mt-2 d-block">Pontuação total de risco</small>
+                                            </div>
+                                            <div class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                                                <i class="bi bi-graph-up-arrow"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Blocked Devices Table -->
+                            <div class="row g-4 mb-4">
+                                <div class="col-12">
+                                    <div class="table-container">
+                                        <h5 class="mb-4">
+                                            <i class="bi bi-shield-lock me-2"></i>
+                                            Dispositivos Bloqueados
+                                        </h5>
+                                        <% if (blockedDevices && blockedDevices.length> 0) { %>
+                                            <div class="table-responsive">
+                                                <table class="table table-hover">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>IP</th>
+                                                            <th>Device ID</th>
+                                                            <th>Motivo</th>
+                                                            <th>Score</th>
+                                                            <th>Data Bloqueio</th>
+                                                            <th>Status</th>
+                                                            <th>Ações</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <% blockedDevices.forEach(device=> { %>
+                                                            <tr>
+                                                                <td><code><%= device.ipAddress || 'N/A' %></code></td>
+                                                                <td><code
+                                                                        style="font-size: 0.75rem;"><%= device.deviceId ? device.deviceId.substring(0, 20) + '...' : 'N/A' %></code>
+                                                                </td>
+                                                                <td
+                                                                    style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
+                                                                    <%= device.reason %>
+                                                                </td>
+                                                                <td><span class="badge bg-danger">
+                                                                        <%= device.threatScore %>
+                                                                    </span></td>
+                                                                <td>
+                                                                    <%= new
+                                                                        Date(device.blockedAt).toLocaleString('pt-BR')
+                                                                        %>
+                                                                </td>
+                                                                <td>
+                                                                    <% if (device.active) { %>
+                                                                        <span class="badge bg-danger">🔒
+                                                                            Bloqueado</span>
+                                                                        <% } else { %>
+                                                                            <span class="badge bg-success">✅
+                                                                                Desbloqueado</span>
+                                                                            <% } %>
+                                                                </td>
+                                                                <td>
+                                                                    <% if (device.active) { %>
+                                                                        <form
+                                                                            action="/admin/security/unblock/<%= device.id %>"
+                                                                            method="POST" style="display: inline;">
+                                                                            <input type="hidden" name="_csrf"
+                                                                                value="<%= csrfToken %>">
+                                                                            <button type="submit"
+                                                                                class="btn btn-success btn-sm"
+                                                                                onclick="return confirm('Desbloquear este dispositivo?')">
+                                                                                <i class="bi bi-unlock"></i> Desbloquear
+                                                                            </button>
+                                                                        </form>
+                                                                        <% } else { %>
+                                                                            <small class="text-muted">Desbloqueado por
+                                                                                <%= device.unblockedBy || 'Admin' %>
+                                                                            </small>
+                                                                            <% } %>
+                                                                </td>
+                                                            </tr>
+                                                            <% }); %>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <% } else { %>
+                                                <div class="text-center py-5">
+                                                    <i class="bi bi-shield-check"
+                                                        style="font-size: 4rem; color: var(--success-color);"></i>
+                                                    <p class="text-muted mt-3">Nenhum dispositivo bloqueado</p>
+                                                </div>
+                                                <% } %>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Recent Threats Table -->
+                            <div class="row g-4">
+                                <div class="col-12">
+                                    <div class="table-container">
+                                        <h5 class="mb-4">
+                                            <i class="bi bi-exclamation-triangle me-2"></i>
+                                            Ameaças Recentes (Últimas 24h)
+                                        </h5>
+                                        <% if (recentThreats && recentThreats.length> 0) { %>
+                                            <div class="table-responsive">
+                                                <table class="table table-hover">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Tipo</th>
+                                                            <th>IP</th>
+                                                            <th>Path</th>
+                                                            <th>Score</th>
+                                                            <th>Data</th>
+                                                            <th>Detalhes</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <% recentThreats.forEach(threat=> { %>
+                                                            <tr>
+                                                                <td>
+                                                                    <% if (threat.threatType==='HONEYPOT' ) { %>
+                                                                        <span class="badge bg-danger">🍯 HONEYPOT</span>
+                                                                        <% } else if (threat.threatType==='INJECTION' )
+                                                                            { %>
+                                                                            <span class="badge bg-warning">💉
+                                                                                INJECTION</span>
+                                                                            <% } else if (threat.threatType==='IDOR' ) {
+                                                                                %>
+                                                                                <span class="badge bg-info">🔓
+                                                                                    IDOR</span>
+                                                                                <% } else if
+                                                                                    (threat.threatType==='BRUTE_FORCE' )
+                                                                                    { %>
+                                                                                    <span class="badge bg-secondary">🔨
+                                                                                        BRUTE FORCE</span>
+                                                                                    <% } else { %>
+                                                                                        <span class="badge bg-dark">
+                                                                                            <%= threat.threatType %>
+                                                                                        </span>
+                                                                                        <% } %>
+                                                                </td>
+                                                                <td><code><%= threat.ipAddress %></code></td>
+                                                                <td><code
+                                                                        style="font-size: 0.8rem;"><%= threat.requestPath %></code>
+                                                                </td>
+                                                                <td><span
+                                                                        class="badge bg-<%= threat.threatScore >= 100 ? 'danger' : threat.threatScore >= 50 ? 'warning' : 'secondary' %>">
+                                                                        <%= threat.threatScore %>
+                                                                    </span></td>
+                                                                <td>
+                                                                    <%= new
+                                                                        Date(threat.createdAt).toLocaleString('pt-BR')
+                                                                        %>
+                                                                </td>
+                                                                <td
+                                                                    style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; font-size: 0.8rem;">
+                                                                    <%= threat.details || 'N/A' %>
+                                                                </td>
+                                                            </tr>
+                                                            <% }); %>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <% } else { %>
+                                                <div class="text-center py-5">
+                                                    <i class="bi bi-shield-check"
+                                                        style="font-size: 4rem; color: var(--success-color);"></i>
+                                                    <p class="text-muted mt-3">Nenhuma ameaça detectada nas últimas 24
+                                                        horas</p>
+                                                </div>
+                                                <% } %>
+                                    </div>
+                                </div>
+                            </div>
+        </div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,304 @@
+import { Request, Response } from 'express';
+import { prisma } from '../../config/database';
+import { logger } from '../../config/logger';
+
+// GET /admin/bids - Lista todos os lances
+export const getBids = async (req: Request, res: Response) => {
+    try {
+        const status = (req.query.status as string) || '';
+        const type = (req.query.type as string) || '';
+
+        const where: any = {};
+
+        if (status) {
+            where.status = status;
+        }
+
+        if (type) {
+            where.type = type;
+        }
+
+        const bids = await prisma.bid.findMany({
+            where,
+            include: {
+                subscription: {
+                    include: {
+                        user: true,
+                        plan: {
+                            include: {
+                                product: true
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        // Calculate summary
+        const totalPending = bids.filter(b => b.status === 'PENDING').length;
+        const totalApproved = bids.filter(b => b.status === 'APPROVED').length;
+        const totalContemplated = bids.filter(b => b.status === 'CONTEMPLATED').length;
+
+        res.render('pages/bids/index', {
+            path: '/bids',
+            bids,
+            summary: {
+                totalPending,
+                totalApproved,
+                totalContemplated,
+                total: bids.length
+            },
+            status,
+            type
+        });
+    } catch (error) {
+        logger.error(error);
+        res.status(500).send('Erro ao carregar lances');
+    }
+};
+
+// GET /admin/bids/pending - Lances pendentes
+export const getPendingBids = async (req: Request, res: Response) => {
+    try {
+        const pendingBids = await prisma.bid.findMany({
+            where: {
+                status: 'PENDING'
+            },
+            include: {
+                subscription: {
+                    include: {
+                        user: true,
+                        plan: {
+                            include: {
+                                product: true
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: [
+                { amount: 'desc' }, // Maiores lances primeiro
+                { createdAt: 'asc' }
+            ]
+        });
+
+        res.render('pages/bids/pending', {
+            path: '/bids',
+            bids: pendingBids
+        });
+    } catch (error) {
+        logger.error(error);
+        res.status(500).send('Erro ao carregar lances pendentes');
+    }
+};
+
+// GET /admin/bids/:id - Detalhes do lance
+export const getBidDetails = async (req: Request, res: Response) => {
+    try {
+        const id = req.params.id as string;
+
+        const bid = await prisma.bid.findUnique({
+            where: { id },
+            include: {
+                subscription: {
+                    include: {
+                        user: true,
+                        plan: {
+                            include: {
+                                product: true
+                            }
+                        },
+                        installments: true
+                    }
+                }
+            }
+        });
+
+        if (!bid) {
+            req.flash('error_msg', 'Lance não encontrado');
+            return res.redirect('/admin/bids');
+        }
+
+        // Calculate how many installments this bid represents
+        const monthlyInstallment = bid.subscription.installments[0]?.amount || 0;
+        const installmentsFromBid = Number(monthlyInstallment) > 0
+            ? Math.round(Number(bid.amount) / Number(monthlyInstallment))
+            : 0;
+
+        res.render('pages/bids/details', {
+            path: '/bids',
+            bid,
+            installmentsFromBid
+        });
+    } catch (error) {
+        logger.error(error);
+        req.flash('error_msg', 'Erro ao carregar detalhes do lance');
+        res.redirect('/admin/bids');
+    }
+};
+
+// POST /admin/bids/:id/approve - Aprovar lance
+export const approveBid = async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    try {
+        const bid = await prisma.bid.findUnique({ where: { id } });
+        if (!bid || bid.status !== 'PENDING') {
+            req.flash('error_msg', 'Lance não encontrado ou já processado');
+            return res.redirect('/admin/bids');
+        }
+
+        await prisma.bid.update({
+            where: { id },
+            data: {
+                status: 'APPROVED'
+            }
+        });
+
+        req.flash('success_msg', 'Lance aprovado com sucesso!');
+        res.redirect(`/admin/bids/${id}`);
+    } catch (error) {
+        logger.error(error);
+        req.flash('error_msg', 'Erro ao aprovar lance');
+        res.redirect(`/admin/bids/${id}`);
+    }
+};
+
+// POST /admin/bids/:id/reject - Rejeitar lance
+export const rejectBid = async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    try {
+        const bid = await prisma.bid.findUnique({ where: { id } });
+        if (!bid || bid.status !== 'PENDING') {
+            req.flash('error_msg', 'Lance não encontrado ou já processado');
+            return res.redirect('/admin/bids');
+        }
+
+        await prisma.bid.update({
+            where: { id },
+            data: {
+                status: 'REJECTED'
+            }
+        });
+
+        req.flash('success_msg', 'Lance rejeitado');
+        res.redirect('/admin/bids');
+    } catch (error) {
+        logger.error(error);
+        req.flash('error_msg', 'Erro ao rejeitar lance');
+        res.redirect(`/admin/bids/${id}`);
+    }
+};
+
+// GET /admin/bids/draw - Página de sorteio
+export const getDrawPage = async (req: Request, res: Response) => {
+    try {
+        // Get approved bids not yet contemplated
+        const approvedBids = await prisma.bid.findMany({
+            where: {
+                status: 'APPROVED',
+                isWinner: false
+            },
+            include: {
+                subscription: {
+                    include: {
+                        user: true,
+                        plan: {
+                            include: {
+                                product: true
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: { amount: 'desc' }
+        });
+
+        // Group by product/plan
+        const groupedBids: Record<string, any> = {};
+        approvedBids.forEach(bid => {
+            const key = `${bid.subscription.plan.productId}-${bid.subscription.planId}`;
+            if (!groupedBids[key]) {
+                groupedBids[key] = {
+                    product: bid.subscription.plan.product,
+                    plan: bid.subscription.plan,
+                    bids: []
+                };
+            }
+            groupedBids[key].bids.push(bid);
+        });
+
+        res.render('pages/bids/draw', {
+            path: '/bids',
+            groupedBids
+        });
+    } catch (error) {
+        logger.error(error);
+        res.status(500).send('Erro ao carregar página de sorteio');
+    }
+};
+
+// POST /admin/bids/draw - Realizar sorteio
+export const performDraw = async (req: Request, res: Response) => {
+    try {
+        const { productId, planId, numberOfWinners } = req.body;
+
+        // Get approved bids for this product/plan
+        const eligibleBids = await prisma.bid.findMany({
+            where: {
+                status: 'APPROVED',
+                isWinner: false,
+                subscription: {
+                    planId,
+                    plan: {
+                        productId
+                    }
+                }
+            },
+            include: {
+                subscription: true
+            },
+            orderBy: { amount: 'desc' }
+        });
+
+        if (eligibleBids.length === 0) {
+            req.flash('error_msg', 'Não há lances elegíveis para sorteio');
+            return res.redirect('/admin/bids/draw');
+        }
+
+        const winners = eligibleBids.slice(0, parseInt(numberOfWinners) || 1);
+        const drawDate = new Date();
+
+        // Mark winners and contemplate subscriptions
+        // Mark winners and contemplate subscriptions
+        const transactionOperations = winners.flatMap(winner => [
+            prisma.bid.update({
+                where: { id: winner.id },
+                data: {
+                    status: 'CONTEMPLATED',
+                    isWinner: true,
+                    drawDate,
+                    contemplatedDate: drawDate
+                }
+            }),
+            prisma.subscription.update({
+                where: { id: winner.subscriptionId },
+                data: {
+                    contemplated: true,
+                    contemplationDate: drawDate,
+                    contemplationType: 'BID',
+                    status: 'CONTEMPLATED'
+                }
+            })
+        ]);
+
+        await prisma.$transaction(transactionOperations);
+
+        req.flash('success_msg', `${winners.length} lance(s) contemplado(s) com sucesso!`);
+        res.redirect('/admin/bids');
+    } catch (error) {
+        logger.error(error);
+        req.flash('error_msg', 'Erro ao realizar sorteio');
+        res.redirect('/admin/bids/draw');
+    }
+};

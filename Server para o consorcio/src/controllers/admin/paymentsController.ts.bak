@@ -1,0 +1,349 @@
+import { Request, Response, NextFunction } from 'express';
+import { prisma } from '../../config/database';
+import { z } from 'zod';
+import { paginate, paginationMeta, buildPageUrl } from '../../utils/pagination';
+
+// GET /admin/payments - Lista todos os pagamentos
+export const getPayments = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const status = (req.query.status as string) || 'PAID';
+        const month = (req.query.month as string) || '';
+        const { page, limit, skip } = paginate(req);
+
+        const where: any = {};
+
+        if (status && status !== 'ALL') {
+            where.status = status;
+        }
+
+        if (month) {
+            const [year, monthNum] = month.split('-');
+            const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+            const endDate = new Date(parseInt(year), parseInt(monthNum), 0);
+
+            where.dueDate = {
+                gte: startDate,
+                lte: endDate
+            };
+        }
+
+        // Note: Overdue detection is now handled by the cron job (jobs/overdueJob.ts)
+        // instead of running on every page load, preventing DB contention.
+
+        const [installments, total] = await Promise.all([
+            prisma.installment.findMany({
+                where,
+                include: {
+                    subscription: {
+                        include: {
+                            user: true,
+                            plan: {
+                                include: {
+                                    product: true
+                                }
+                            }
+                        }
+                    }
+                },
+                orderBy: { dueDate: 'asc' },
+                skip,
+                take: limit
+            }),
+            prisma.installment.count({ where })
+        ]);
+
+        // Summary: aggregate from the DB for the filtered set
+        const [summaryResult] = await prisma.$queryRawUnsafe<any[]>(`
+            SELECT 
+                COALESCE(SUM(CASE WHEN status = 'PENDING' THEN amount ELSE 0 END), 0) as "totalPending",
+                COALESCE(SUM(CASE WHEN status = 'OVERDUE' THEN amount ELSE 0 END), 0) as "totalOverdue",
+                COALESCE(SUM(CASE WHEN status = 'PAID' THEN amount ELSE 0 END), 0) as "totalPaid"
+            FROM installments
+        `);
+
+        const pagination = paginationMeta(total, page, limit);
+
+        res.render('pages/payments/index', {
+            path: '/payments',
+            installments,
+            summary: {
+                totalPending: Number(summaryResult?.totalPending || 0),
+                totalOverdue: Number(summaryResult?.totalOverdue || 0),
+                totalPaid: Number(summaryResult?.totalPaid || 0),
+                count: total
+            },
+            status,
+            month,
+            pagination,
+            buildPageUrl: (p: number) => buildPageUrl('/admin/payments', req.query as Record<string, any>, p)
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// GET /admin/payments/calendar - Calendário de vencimentos
+export const getPaymentsCalendar = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const year = parseInt(req.query.year as string) || new Date().getFullYear();
+        const month = parseInt(req.query.month as string) || new Date().getMonth() + 1;
+
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0);
+
+        const installments = await prisma.installment.findMany({
+            where: {
+                dueDate: {
+                    gte: startDate,
+                    lte: endDate
+                }
+            },
+            include: {
+                subscription: {
+                    include: {
+                        user: true,
+                        plan: {
+                            include: {
+                                product: true
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: { dueDate: 'asc' }
+        });
+
+        // Group by day
+        const calendar: Record<number, any[]> = {};
+        installments.forEach(inst => {
+            const day = inst.dueDate.getDate();
+            if (!calendar[day]) {
+                calendar[day] = [];
+            }
+            calendar[day].push(inst);
+        });
+
+        res.render('pages/payments/calendar', {
+            path: '/payments',
+            calendar,
+            year,
+            month
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const updatePaymentSchema = z.object({
+    status: z.enum(['PAID', 'PENDING', 'OVERDUE']),
+    paymentDate: z.string().optional().nullable(),
+    paymentMethod: z.string().optional().nullable(),
+    _csrf: z.string().optional()
+});
+
+// POST /admin/payments/:id/update - Atualizar pagamento (status, data, método)
+export const updatePayment = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const id = req.params.id as string;
+
+        // Validate input
+        const validation = updatePaymentSchema.safeParse(req.body);
+
+        if (!validation.success) {
+            req.flash('error_msg', 'Dados inválidos: ' + validation.error.issues.map(i => i.message).join(', '));
+            return res.redirect('/admin/payments');
+        }
+
+        const { status, paymentDate, paymentMethod } = validation.data;
+
+        const installment = await prisma.installment.findUnique({
+            where: { id },
+            include: { subscription: true }
+        });
+
+        if (!installment) {
+            return res.status(404).json({ error: 'Parcela não encontrada' });
+        }
+
+        const adminUser = (req as any).session?.user;
+        const newStatus = status;
+
+        // Fix 7: Wrap all mutation operations in a single Serializable transaction
+        // to prevent race conditions between installment and subscription updates.
+        await prisma.$transaction(async (tx) => {
+            // Re-read inside transaction for TOCTOU protection
+            const inst = await tx.installment.findUnique({
+                where: { id },
+                include: { subscription: { include: { installments: true } } }
+            });
+            if (!inst) throw new Error('Parcela não encontrada');
+
+            const currentOldStatus = inst.status;
+
+            // 1. Update installment
+            await tx.installment.update({
+                where: { id },
+                data: {
+                    status: newStatus,
+                    paymentMethod: newStatus === 'PAID' ? (paymentMethod || null) : null,
+                    paymentDate: newStatus === 'PAID' ? (paymentDate ? new Date(paymentDate) : new Date()) : null
+                }
+            });
+
+            // 2. Audit log
+            await tx.auditLog.create({
+                data: {
+                    userId: adminUser?.id || null,
+                    action: 'UPDATE_PAYMENT',
+                    resource: 'installment',
+                    details: JSON.stringify({
+                        installmentId: id,
+                        oldStatus: currentOldStatus,
+                        newStatus,
+                        oldPaymentMethod: inst.paymentMethod,
+                        newPaymentMethod: newStatus === 'PAID' ? (paymentMethod || null) : null,
+                        adminName: adminUser?.name || 'Unknown'
+                    }),
+                    ipAddress: req.ip || req.socket.remoteAddress || 'unknown'
+                }
+            });
+
+            // 3. Subscription balance logic
+            if (currentOldStatus !== 'PAID' && newStatus === 'PAID') {
+                // Becoming PAID: increment counter, decrement balance
+                const subscriptionUpdateData: any = {
+                    paidInstallments: { increment: 1 },
+                    balanceDue: { decrement: Number(inst.amount) }
+                };
+                // Activate subscription when adesão (#1) is paid
+                if (inst.number === 1 && inst.subscription.status === 'PENDING') {
+                    subscriptionUpdateData.status = 'ACTIVE';
+                }
+                await tx.subscription.update({
+                    where: { id: inst.subscriptionId },
+                    data: subscriptionUpdateData
+                });
+
+                // Check for completion — treat current installment as PAID in the check.
+                // CANCELLED installments are excluded (removed from plan, don't block completion).
+                // REFUNDED installments are NOT excluded (represent unpaid obligations).
+                const allPaid = inst.subscription.installments.every(
+                    i => i.id === id ? true : (i.status === 'PAID' || i.status === 'CANCELLED')
+                );
+                if (allPaid) {
+                    await tx.subscription.update({
+                        where: { id: inst.subscriptionId },
+                        data: { status: 'COMPLETED' }
+                    });
+                }
+            } else if (currentOldStatus === 'PAID' && newStatus !== 'PAID') {
+                // Reverting from PAID: decrement counter, restore balance
+                await tx.subscription.update({
+                    where: { id: inst.subscriptionId },
+                    data: {
+                        paidInstallments: { decrement: 1 },
+                        balanceDue: { increment: Number(inst.amount) }
+                    }
+                });
+
+                // Revert COMPLETED → ACTIVE if needed (current installment is now unpaid).
+                // REFUNDED is also treated as "pending" — it means a payment was reversed.
+                const hasPendingAfterRevert = inst.subscription.installments.some(
+                    i => i.id === id ? true : ['PENDING', 'OVERDUE', 'REFUNDED'].includes(i.status)
+                );
+                if (hasPendingAfterRevert && inst.subscription.status === 'COMPLETED') {
+                    await tx.subscription.update({
+                        where: { id: inst.subscriptionId },
+                        data: { status: 'ACTIVE' }
+                    });
+                    await tx.auditLog.create({
+                        data: {
+                            userId: adminUser?.id || null,
+                            action: 'UPDATE_SUBSCRIPTION',
+                            resource: 'subscription',
+                            details: JSON.stringify({
+                                subscriptionId: inst.subscriptionId,
+                                reason: 'Payment Reverted',
+                                oldStatus: 'COMPLETED',
+                                newStatus: 'ACTIVE'
+                            }),
+                            ipAddress: req.ip || req.socket.remoteAddress || 'unknown'
+                        }
+                    });
+                }
+            }
+            // If staying PAID but changing details (date/method) — no subscription change needed.
+        }, { isolationLevel: 'Serializable', timeout: 10000 });
+
+        req.flash('success_msg', 'Pagamento atualizado com sucesso!');
+        res.redirect('/admin/payments');
+    } catch (error) {
+        next(error);
+    }
+};
+
+// GET /admin/payments/overdue - Listar atrasados
+export const getOverduePayments = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Update overdue status (only for active/contemplated contracts)
+        await prisma.installment.updateMany({
+            where: {
+                status: 'PENDING',
+                dueDate: {
+                    lt: today
+                },
+                subscription: {
+                    status: { in: ['ACTIVE', 'CONTEMPLATED'] }
+                }
+            },
+            data: {
+                status: 'OVERDUE'
+            }
+        });
+
+        const overdueInstallments = await prisma.installment.findMany({
+            where: {
+                status: 'OVERDUE'
+            },
+            include: {
+                subscription: {
+                    include: {
+                        user: true,
+                        plan: {
+                            include: {
+                                product: true
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: { dueDate: 'asc' }
+        });
+
+        // Group by user
+        const groupedByUser: Record<string, any> = {};
+        overdueInstallments.forEach(inst => {
+            const userId = inst.subscription.userId;
+            if (!groupedByUser[userId]) {
+                groupedByUser[userId] = {
+                    user: inst.subscription.user,
+                    installments: [],
+                    totalOverdue: 0
+                };
+            }
+            groupedByUser[userId].installments.push(inst);
+            groupedByUser[userId].totalOverdue += Number(inst.amount);
+        });
+
+        res.render('pages/payments/overdue', {
+            path: '/payments',
+            groupedByUser,
+            totalOverdue: overdueInstallments.reduce((sum, i) => sum + Number(i.amount), 0)
+        });
+    } catch (error) {
+        next(error);
+    }
+};

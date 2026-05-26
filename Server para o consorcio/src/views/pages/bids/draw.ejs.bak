@@ -1,0 +1,116 @@
+<%- include('../../partials/header') %>
+
+    <%- include('../../partials/sidebar', { path: '/bids' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title">Sorteio de Contemplação</h1>
+                    <p class="text-muted mb-0">Realize sorteios por lance</p>
+                </div>
+                <div class="top-bar-actions">
+                    <a href="/admin/bids" class="btn btn-outline-secondary shadow-sm" style="border-radius: 10px;">
+                        <i class="bi bi-arrow-left me-2"></i>Voltar
+                    </a>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="bi bi-moon-stars" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Grouped Bids by Product/Plan -->
+            <% const groups=Object.values(groupedBids || {}); %>
+            <% if (groups.length > 0) { %>
+                <% groups.forEach((group, index) => { %>
+                    <div class="premium-info-card mb-4">
+                        <div class="card-header-premium d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 fw-bold">
+                                <i class="bi bi-box-seam text-primary me-2"></i>
+                                <%= group.product.name %> - <%= group.plan.name %>
+                            </h5>
+                            <span class="badge-premium" style="background: rgba(13, 110, 253, 0.1); color: var(--primary-color); border: 1px solid rgba(13, 110, 253, 0.2);">
+                                <%= group.bids.length %> lance(s) aprovado(s)
+                            </span>
+                        </div>
+
+                        <div class="p-0">
+                            <div class="table-responsive">
+                                <table class="table table-custom align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Cliente</th>
+                                            <th>Valor do Lance</th>
+                                            <th>Data</th>
+                                            <th class="text-end">Ação</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% group.bids.forEach(bid => { %>
+                                            <tr>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="user-avatar text-white fw-bold d-flex align-items-center justify-content-center me-3 shadow-sm"
+                                                            style="width: 36px; height: 36px; border-radius: 10px; font-size: 0.9rem;">
+                                                            <%= bid.subscription.user.name.charAt(0).toUpperCase() %>
+                                                        </div>
+                                                        <strong class="text-dark"><%= bid.subscription.user.name %></strong>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <strong style="color: var(--success-color);">
+                                                        R$ <%= Number(bid.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                                    </strong>
+                                                </td>
+                                                <td>
+                                                    <span class="text-muted"><i class="bi bi-calendar3 me-1"></i><%= new Date(bid.createdAt).toLocaleDateString('pt-BR') %></span>
+                                                </td>
+                                                <td class="text-end">
+                                                    <a href="/admin/bids/<%= bid.id %>" class="btn btn-sm btn-outline-primary" style="border-radius: 8px;">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        <% }); %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Draw Form -->
+                        <div class="p-4" style="border-top: 1px solid var(--border-color); background: var(--bg-secondary);">
+                            <form action="/admin/bids/draw" method="POST" class="m-0">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <input type="hidden" name="productId" value="<%= group.product.id %>">
+                                <input type="hidden" name="planId" value="<%= group.plan.id %>">
+                                <div class="row align-items-end">
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">Quantidade de Vencedores</label>
+                                        <input type="number" name="numberOfWinners" class="form-control" value="1" min="1" max="<%= group.bids.length %>" style="border-radius: 8px;">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button type="submit" class="btn btn-primary w-100" style="border-radius: 10px;"
+                                            onclick="return confirm('Confirma o sorteio para <%= group.product.name %>?')">
+                                            <i class="bi bi-trophy-fill me-2"></i>Contemplar
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <div class="premium-info-card text-center py-5">
+                    <div class="mb-4 d-inline-block p-4 rounded-circle" style="background: rgba(99, 102, 241, 0.1);">
+                        <i class="bi bi-inbox text-primary" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5 class="text-dark fw-bold">Nenhum lance aprovado</h5>
+                    <p class="text-muted mb-3">Aprove lances pendentes para realizar sorteios</p>
+                    <a href="/admin/bids/pending" class="btn btn-warning shadow-sm" style="border-radius: 10px;">
+                        <i class="bi bi-clock me-2"></i>Ver Lances Pendentes
+                    </a>
+                </div>
+            <% } %>
+        </div>
+
+<%- include('../../partials/footer') %>

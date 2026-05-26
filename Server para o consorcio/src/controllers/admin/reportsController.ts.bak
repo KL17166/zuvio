@@ -1,0 +1,76 @@
+import { Request, Response } from 'express';
+import { prisma } from '../../config/database';
+import { logger } from '../../config/logger';
+
+// GET /admin/reports
+export const getReports = async (req: Request, res: Response) => {
+    try {
+        // Get date ranges
+        const now = new Date();
+
+        // Total clients
+        const totalClients = await prisma.user.count({ where: { role: 'CLIENT' } });
+
+        // Contracts stats
+        const totalContracts = await prisma.subscription.count();
+        const activeContracts = await prisma.subscription.count({ where: { status: 'ACTIVE' } });
+        const contemplatedContracts = await prisma.subscription.count({ where: { contemplated: true } });
+
+        // Financial stats
+        const allInstallments = await prisma.installment.findMany();
+        const paidInstallments = allInstallments.filter(i => i.status === 'PAID');
+        const overdueInstallments = allInstallments.filter(i => i.status === 'OVERDUE');
+
+        const totalReceived = paidInstallments.reduce((sum, i) => sum + Number(i.amount), 0);
+        const totalOverdue = overdueInstallments.reduce((sum, i) => sum + Number(i.amount), 0);
+        const totalPending = allInstallments
+            .filter(i => i.status === 'PENDING')
+            .reduce((sum, i) => sum + Number(i.amount), 0);
+
+        // Monthly revenue (last 12 months)
+        const monthlyRevenue: { month: string; amount: number }[] = [];
+        for (let i = 11; i >= 0; i--) {
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const nextMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+
+            const monthPayments = paidInstallments.filter(inst => {
+                const paidDate = inst.paymentDate ? new Date(inst.paymentDate) : null;
+                return paidDate && paidDate >= date && paidDate < nextMonth;
+            });
+
+            monthlyRevenue.push({
+                month: date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+                amount: monthPayments.reduce((sum, i) => sum + Number(i.amount), 0)
+            });
+        }
+
+        // Products stats
+        const totalProducts = await prisma.product.count({ where: { active: true } });
+
+        // Bids stats
+        const totalBids = await prisma.bid.count();
+        const pendingBids = await prisma.bid.count({ where: { status: 'PENDING' } });
+
+        res.render('pages/reports/index', {
+            path: '/reports',
+            stats: {
+                totalClients,
+                totalContracts,
+                activeContracts,
+                contemplatedContracts,
+                totalReceived,
+                totalOverdue,
+                totalPending,
+                totalProducts,
+                totalBids,
+                pendingBids,
+                paidCount: paidInstallments.length,
+                overdueCount: overdueInstallments.length
+            },
+            monthlyRevenue
+        });
+    } catch (error) {
+        logger.error('Reports error:', error);
+        res.status(500).send('Erro ao carregar relatórios');
+    }
+};

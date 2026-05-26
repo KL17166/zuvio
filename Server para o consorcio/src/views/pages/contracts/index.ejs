@@ -1,0 +1,478 @@
+<%- include('../../partials/header') %>
+
+    <%- include('../../partials/sidebar', { path: '/contracts' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title">Gestão de Contratos</h1>
+                    <p class="text-muted mb-0">Gerencie todos os contratos de consórcio</p>
+                </div>
+                <div class="top-bar-actions">
+                    <!-- View Toggle -->
+                    <div class="btn-group shadow-sm me-2" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-primary active" id="btnTableView" onclick="setView('table')" title="Tabela">
+                            <i class="bi bi-list-ul"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="btnCardsView" onclick="setView('cards')" title="Cards">
+                            <i class="bi bi-grid-3x3-gap"></i>
+                        </button>
+                    </div>
+                    <a href="/admin/contracts/new" class="btn btn-primary shadow-sm" style="border-radius: 10px;">
+                        <i class="bi bi-plus-lg me-2"></i>Novo Contrato
+                    </a>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="bi bi-moon-stars" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            <% if (typeof success_msg !=='undefined' && success_msg && success_msg.length> 0) { %>
+                <div class="alert alert-success alert-dismissible fade show shadow-sm border-0" role="alert" style="border-radius: 12px;">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <%= success_msg %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+
+            <% if (typeof error_msg !=='undefined' && error_msg && error_msg.length> 0) { %>
+                <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0" role="alert" style="border-radius: 12px;">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <%= error_msg %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+
+            <!-- Stats Cards -->
+            <div class="row g-4 mb-5">
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Total de Contratos</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: var(--primary-color);">
+                                    <%= summary.total %>
+                                </div>
+                                <small class="text-muted mt-2 d-block">Todos os contratos</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(13, 110, 253, 0.1); color: var(--primary-color);">
+                                <i class="bi bi-files"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Contratos Ativos</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: #10b981;">
+                                    <%= summary.totalActive %>
+                                </div>
+                                <small class="text-muted mt-2 d-block">
+                                    <%= summary.total > 0 ? ((summary.totalActive / summary.total) * 100).toFixed(1) : 0 %>% do total
+                                </small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Pendentes</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: #f59e0b;">
+                                    <%= summary.totalPending %>
+                                </div>
+                                <small class="text-muted mt-2 d-block">Aguardando aprovação</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                                <i class="bi bi-clock-history"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Contemplados</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: #8b5cf6;">
+                                    <%= summary.totalContemplated %>
+                                </div>
+                                <small class="text-muted mt-2 d-block">Premiados</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;">
+                                <i class="bi bi-award-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABLE VIEW -->
+            <div class="contracts-view" id="tableView">
+            <div class="premium-table-container mb-4">
+                <div class="bg-white border-0 pt-4 pb-3 px-4 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid var(--border-color) !important;">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-file-text text-primary me-2"></i>
+                        Lista de Contratos
+                    </h5>
+                    <div class="btn-group shadow-sm" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-primary active" onclick="filterStatus('all')">Todos</button>
+                        <button type="button" class="btn btn-sm btn-outline-success" onclick="filterStatus('ACTIVE')">Ativos</button>
+                        <button type="button" class="btn btn-sm btn-outline-warning" onclick="filterStatus('PENDING')">Pendentes</button>
+                        <button type="button" class="btn btn-sm btn-outline-info" onclick="filterStatus('CONTEMPLATED')">Contemplados</button>
+                    </div>
+                </div>
+
+                <% if (contracts && contracts.length> 0) { %>
+                    <div class="p-0">
+                        <div class="table-responsive">
+                            <table class="table table-custom align-middle w-100" id="contractsTable">
+                                <thead>
+                                    <tr>
+                                    <th>ID</th>
+                                    <th>Cliente</th>
+                                    <th>Produto</th>
+                                    <th>Grupo/Cota</th>
+                                    <th>Crédito</th>
+                                    <th>Parcelas</th>
+                                    <th>Progresso</th>
+                                    <th>Status</th>
+                                    <th class="text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% contracts.forEach(contract=> { %>
+                                    <tr>
+                                        <td>
+                                            <code style="font-size: 0.75rem; background: var(--bg-secondary); padding: 0.2rem 0.4rem; border-radius: 4px;">#<%= contract.id.substring(0, 8) %></code>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="user-avatar text-white fw-bold d-flex align-items-center justify-content-center me-3 shadow-sm"
+                                                    style="width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); font-size: 1rem;">
+                                                    <%= contract.user.name.charAt(0).toUpperCase() %>
+                                                </div>
+                                                <div>
+                                                    <strong class="text-dark d-block">
+                                                        <%= contract.user.name %>
+                                                    </strong>
+                                                    <div class="text-muted small">
+                                                        <%= contract.user.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') %>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <strong class="text-dark d-block" style="font-size: 0.95rem;">
+                                                    <%= contract.plan.product.name %>
+                                                </strong>
+                                                <div class="text-muted small">
+                                                    <%= contract.plan.name %>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge" style="background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-color);">
+                                                G:<%= contract.groupNumber || '-' %> / C:<%= contract.quotaNumber || '-' %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <strong style="color: var(--success-color); font-size: 0.95rem;">
+                                                R$ <%= Number(contract.creditValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                            </strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge <%= contract.paidInstallments === contract.totalInstallments ? 'bg-success-subtle text-success border border-success-subtle' : contract.paidInstallments > 0 ? 'bg-warning-subtle text-warning border border-warning-subtle' : 'bg-secondary-subtle text-secondary border border-secondary-subtle' %>">
+                                                <%= contract.paidInstallments %>/<%= contract.totalInstallments %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <% const progress=(contract.paidInstallments / contract.totalInstallments) * 100; %>
+                                                <div style="min-width: 120px;">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <small class="text-muted" style="font-size: 0.7rem;">Progresso</small>
+                                                        <small class="text-dark fw-bold" style="font-size: 0.75rem;"><%= Math.round(progress) %>%</small>
+                                                    </div>
+                                                    <div class="progress bg-secondary-subtle" style="height: 6px; border-radius: 3px;">
+                                                        <div class="progress-bar <%= progress === 100 ? 'bg-success' : progress > 50 ? 'bg-warning' : 'bg-primary' %>"
+                                                            role="progressbar"
+                                                            <%- `style="width: ${Math.round(progress)}%; border-radius: 3px;"` %>>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                        </td>
+                                        <td>
+                                            <% if (contract.status==='ACTIVE' ) { %>
+                                                <span class="badge-premium" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2);"><i class="bi bi-check-circle-fill"></i>Ativo</span>
+                                            <% } else if (contract.status==='PENDING' ) { %>
+                                                <span class="badge-premium" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2);"><i class="bi bi-clock-fill"></i>Pendente</span>
+                                            <% } else if (contract.status==='CONTEMPLATED' ) { %>
+                                                <span class="badge-premium" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.2);"><i class="bi bi-trophy-fill"></i>Contemplado</span>
+                                            <% } else if (contract.status==='CANCELLED' ) { %>
+                                                <span class="badge-premium" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);"><i class="bi bi-x-circle-fill"></i>Cancelado</span>
+                                            <% } else if (contract.status==='PENDING_KYC' ) { %>
+                                                <span class="badge-premium" style="background: rgba(245, 158, 11, 0.1); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2);"><i class="bi bi-person-check"></i>Aguardando KYC</span>
+                                            <% } else { %>
+                                                <span class="badge-premium" style="background: rgba(108, 117, 125, 0.1); color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.2);">
+                                                    <%= contract.status %>
+                                                </span>
+                                            <% } %>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="d-flex justify-content-center gap-2">
+                                                <a href="/admin/contracts/<%= contract.id %>"
+                                                    class="btn btn-sm btn-outline-primary" style="border-radius: 8px;"
+                                                    title="Ver Detalhes">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <% if (!contract.contemplated && contract.status==='ACTIVE' ) { %>
+                                                    <button type="button"
+                                                        class="btn btn-sm btn-outline-success" style="border-radius: 8px;"
+                                                        onclick="contemplateContract('<%= contract.id %>', '<%= contract.user.name %>')"
+                                                        title="Contemplar">
+                                                        <i class="bi bi-trophy"></i>
+                                                    </button>
+                                                <% } %>
+                                                <% if (contract.status==='ACTIVE' || contract.status==='PENDING' ) { %>
+                                                    <button type="button"
+                                                        class="btn btn-sm btn-outline-danger" style="border-radius: 8px;"
+                                                        onclick="cancelContract('<%= contract.id %>', '<%= contract.user.name %>')"
+                                                        title="Cancelar">
+                                                        <i class="bi bi-x-circle"></i>
+                                                    </button>
+                                                <% } %>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <% } else { %>
+                    <div class="text-center py-5">
+                        <div class="mb-4 d-inline-block p-4 rounded-circle" style="background: rgba(var(--primary-rgb, 13, 110, 253), 0.1);">
+                            <i class="bi bi-file-earmark-break text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="text-dark fw-bold">Nenhum contrato encontrado</h5>
+                        <p class="text-muted mb-0">Novos contratos aparecerão nesta lista.</p>
+                        <a href="/admin/contracts/new" class="btn btn-primary mt-4" style="border-radius: 10px;">
+                            <i class="bi bi-plus-lg me-2"></i>Criar Primeiro Contrato
+                        </a>
+                    </div>
+                <% } %>
+            </div>
+            <div class="mb-5"></div>
+            </div>
+
+            <!-- CARDS VIEW -->
+            <div class="contracts-view" id="cardsView" style="display: none;">
+                <% if (contracts && contracts.length > 0) { %>
+                    <div class="row g-4">
+                        <% contracts.forEach(contract => { %>
+                            <div class="col-md-6 col-lg-4">
+                                <div class="premium-stat-card h-100" style="overflow: hidden;">
+                                    <div class="p-4">
+                                        <!-- Client Info -->
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div style="width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; margin-right: 0.75rem;">
+                                                <%= contract.user.name.charAt(0).toUpperCase() %>
+                                            </div>
+                                            <div class="flex-1">
+                                                <strong class="d-block" style="font-size: 0.95rem;"><%= contract.user.name %></strong>
+                                                <small class="text-muted"><%= contract.user.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') %></small>
+                                            </div>
+                                            <% if (contract.status==='ACTIVE') { %>
+                                                <span class="badge-premium" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); font-size: 0.7rem;"><i class="bi bi-check-circle-fill"></i>Ativo</span>
+                                            <% } else if (contract.status==='PENDING') { %>
+                                                <span class="badge-premium" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); font-size: 0.7rem;"><i class="bi bi-clock-fill"></i>Pendente</span>
+                                            <% } else if (contract.status==='CONTEMPLATED') { %>
+                                                <span class="badge-premium" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.2); font-size: 0.7rem;"><i class="bi bi-trophy-fill"></i>Contemplado</span>
+                                            <% } else if (contract.status==='CANCELLED') { %>
+                                                <span class="badge-premium" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 0.7rem;"><i class="bi bi-x-circle-fill"></i>Cancelado</span>
+                                            <% } else if (contract.status==='PENDING_KYC') { %>
+                                                <span class="badge-premium" style="background: rgba(245, 158, 11, 0.1); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2); font-size: 0.7rem;"><i class="bi bi-person-check"></i>Aguardando KYC</span>
+                                            <% } else { %>
+                                                <span class="badge-premium" style="background: rgba(108, 117, 125, 0.1); color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.2); font-size: 0.7rem;"><%= contract.status %></span>
+                                            <% } %>
+                                        </div>
+
+                                        <!-- Product -->
+                                        <div class="mb-3">
+                                            <div class="info-label">Produto</div>
+                                            <strong style="font-size: 0.95rem;"><%= contract.plan.product.name %></strong>
+                                            <div class="small text-muted"><%= contract.plan.name %></div>
+                                        </div>
+
+                                        <!-- Credit & Group -->
+                                        <div class="d-flex gap-4 mb-3">
+                                            <div>
+                                                <div class="info-label">Crédito</div>
+                                                <strong style="color: var(--success-color);">R$ <%= Number(contract.creditValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %></strong>
+                                            </div>
+                                            <div>
+                                                <div class="info-label">Grupo / Cota</div>
+                                                <span class="fw-semibold">G:<%= contract.groupNumber || '-' %> / C:<%= contract.quotaNumber || '-' %></span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Progress -->
+                                        <% const cardProgress = (contract.paidInstallments / contract.totalInstallments) * 100; %>
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <div class="info-label mb-0">Progresso</div>
+                                                <small class="fw-bold"><%= contract.paidInstallments %>/<%= contract.totalInstallments %> (<%= Math.round(cardProgress) %>%)</small>
+                                            </div>
+                                            <div class="progress" style="height: 6px; border-radius: 3px; background: var(--bg-secondary);">
+                                                <div class="progress-bar <%= cardProgress === 100 ? 'bg-success' : cardProgress > 50 ? 'bg-warning' : 'bg-primary' %>"
+                                                    role="progressbar" <%- `style="width: ${Math.round(cardProgress)}%; border-radius: 3px;"` %>></div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Actions -->
+                                        <div class="d-flex gap-2">
+                                            <a href="/admin/contracts/<%= contract.id %>" class="btn btn-sm btn-outline-primary flex-1" style="border-radius: 8px;">
+                                                <i class="bi bi-eye me-1"></i>Detalhes
+                                            </a>
+                                            <% if (!contract.contemplated && contract.status==='ACTIVE') { %>
+                                                <button type="button" class="btn btn-sm btn-outline-success" style="border-radius: 8px;"
+                                                    onclick="contemplateContract('<%= contract.id %>', '<%= contract.user.name %>')" title="Contemplar">
+                                                    <i class="bi bi-trophy"></i>
+                                                </button>
+                                            <% } %>
+                                            <% if (contract.status==='ACTIVE' || contract.status==='PENDING') { %>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;"
+                                                    onclick="cancelContract('<%= contract.id %>', '<%= contract.user.name %>')" title="Cancelar">
+                                                    <i class="bi bi-x-circle"></i>
+                                                </button>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-5">
+                        <div class="mb-4 d-inline-block p-4 rounded-circle" style="background: rgba(var(--primary-rgb, 13, 110, 253), 0.1);">
+                            <i class="bi bi-file-earmark-break text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="text-dark fw-bold">Nenhum contrato encontrado</h5>
+                        <p class="text-muted mb-0">Novos contratos aparecerão nesta lista.</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Modal Contemplar -->
+        <div class="modal fade" id="contemplateModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content modal-content-premium">
+                    <div class="modal-header modal-header-premium py-3 px-4" style="background: rgba(139, 92, 246, 0.1);">
+                        <h5 class="modal-title fw-bold" style="color: #8b5cf6;"><i class="bi bi-trophy-fill me-2 bg-white rounded p-1 shadow-sm"></i>Contemplar Contrato</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="contemplateForm" method="POST" class="m-0">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <div class="modal-body p-4">
+                            <p>Você está prestes a contemplar o contrato de <strong id="contemplateName" class="text-dark"></strong>.</p>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small text-muted text-uppercase">Tipo de Contemplação</label>
+                                <select name="contemplationType" class="form-select" required style="border-radius: 8px;">
+                                    <option value="BID">🎯 Lance</option>
+                                    <option value="DRAW">🎲 Sorteio</option>
+                                    <option value="DIRECT">⚡ Direto</option>
+                                </select>
+                            </div>
+                            <div class="alert alert-warning border-0 shadow-sm" style="border-radius: 10px; background: rgba(245, 158, 11, 0.1); color: #b45309;">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                Esta ação não pode ser desfeita e registrará a contemplação definitivamente!
+                            </div>
+                        </div>
+                        <div class="modal-footer modal-footer-premium py-3 px-4" style="background: var(--bg-secondary);">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px;">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" style="background: #8b5cf6; border-color: #8b5cf6; border-radius: 8px;">Confirmar Contemplação</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Cancelar -->
+        <div class="modal fade" id="cancelModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content modal-content-premium">
+                    <div class="modal-header modal-header-premium py-3 px-4" style="background: rgba(239, 68, 68, 0.1);">
+                        <h5 class="modal-title fw-bold text-danger"><i class="bi bi-x-circle-fill me-2 bg-danger text-white rounded p-1 shadow-sm"></i>Cancelar Contrato</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="cancelForm" method="POST" class="m-0">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <div class="modal-body p-4">
+                            <p class="mb-4">Tem certeza que deseja cancelar o contrato de <strong id="cancelName" class="text-dark"></strong>?</p>
+                            <div class="alert alert-danger border-0 shadow-sm" style="border-radius: 10px; background: rgba(239, 68, 68, 0.1); color: #b91c1c;">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                O contrato será cancelado permanentemente e todas as parcelas pendentes também serão marcadas como canceladas.
+                            </div>
+                        </div>
+                        <div class="modal-footer modal-footer-premium py-3 px-4" style="background: var(--bg-secondary);">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px;">Não, voltar</button>
+                            <button type="submit" class="btn btn-danger" style="border-radius: 8px;">Sim, cancelar contrato</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+<script>
+    function contemplateContract(id, name) {
+        document.getElementById('contemplateName').innerText = name;
+        document.getElementById('contemplateForm').action = `/admin/contracts/${id}/contemplate`;
+        new bootstrap.Modal(document.getElementById('contemplateModal')).show();
+    }
+
+    function cancelContract(id, name) {
+        document.getElementById('cancelName').innerText = name;
+        document.getElementById('cancelForm').action = `/admin/contracts/${id}/cancel`;
+        new bootstrap.Modal(document.getElementById('cancelModal')).show();
+    }
+
+    function setView(view) {
+        if (view === 'table') {
+            document.getElementById('tableView').style.display = 'block';
+            document.getElementById('cardsView').style.display = 'none';
+            document.getElementById('btnTableView').classList.add('active');
+            document.getElementById('btnCardsView').classList.remove('active');
+        } else {
+            document.getElementById('tableView').style.display = 'none';
+            document.getElementById('cardsView').style.display = 'block';
+            document.getElementById('btnCardsView').classList.add('active');
+            document.getElementById('btnTableView').classList.remove('active');
+        }
+    }
+
+    function filterStatus(status) {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (status === 'all') {
+            urlParams.delete('status');
+        } else {
+            urlParams.set('status', status);
+        }
+        urlParams.delete('page'); // Reset to page 1 on filter
+        window.location.search = urlParams.toString();
+    }
+</script>
+
+<%- include('../../partials/footer') %>

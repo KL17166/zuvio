@@ -1,0 +1,303 @@
+<%- include('../../partials/header') %>
+
+    <%- include('../../partials/sidebar', { path: '/bids' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title">Gestão de Lances</h1>
+                    <p class="text-muted mb-0">Gerencie lances e ofertas de contemplação</p>
+                </div>
+                <div class="top-bar-actions">
+                    <a href="/admin/bids/pending" class="btn btn-warning shadow-sm" style="border-radius: 10px;">
+                        <i class="bi bi-clock me-2"></i>Pendentes
+                        <% if (summary.totalPending > 0) { %>
+                            <span class="badge bg-white text-warning ms-1"><%= summary.totalPending %></span>
+                        <% } %>
+                    </a>
+                    <a href="/admin/bids/draw" class="btn btn-primary shadow-sm" style="border-radius: 10px;">
+                        <i class="bi bi-shuffle me-2"></i>Sorteio
+                        <% if (summary.totalApproved > 0) { %>
+                            <span class="badge bg-white text-primary ms-1"><%= summary.totalApproved %></span>
+                        <% } %>
+                    </a>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="bi bi-moon-stars" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length > 0) { %>
+                <div class="alert alert-success alert-dismissible fade show shadow-sm border-0" role="alert" style="border-radius: 12px;">
+                    <i class="bi bi-check-circle-fill me-2"></i><%= success_msg %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+            <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length > 0) { %>
+                <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0" role="alert" style="border-radius: 12px;">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i><%= error_msg %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+
+            <!-- Stats Cards -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Total de Lances</div>
+                                <div style="font-size: 2rem; font-weight: 800; line-height: 1; color: var(--primary-color);"><%= summary.total %></div>
+                                <small class="text-muted mt-2 d-block">Registrados no sistema</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(13,110,253,0.1); color: var(--primary-color);">
+                                <i class="bi bi-lightning-fill"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2 pt-2" style="border-top: 1px solid var(--border-color);">
+                            <small class="text-muted">Volume total: <strong style="color:var(--success-color);">R$ <%= summary.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %></strong></small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Pendentes</div>
+                                <div style="font-size: 2rem; font-weight: 800; line-height: 1; color: #f59e0b;"><%= summary.totalPending %></div>
+                                <small class="text-muted mt-2 d-block">Aguardando análise</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(245,158,11,0.1); color: #f59e0b;">
+                                <i class="bi bi-clock-history"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2 pt-2" style="border-top: 1px solid var(--border-color);">
+                            <small class="text-muted">Rejeitados: <strong style="color:#ef4444;"><%= summary.totalRejected %></strong></small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Aprovados</div>
+                                <div style="font-size: 2rem; font-weight: 800; line-height: 1; color: #10b981;"><%= summary.totalApproved %></div>
+                                <small class="text-muted mt-2 d-block">Prontos para sorteio</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(16,185,129,0.1); color: #10b981;">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2 pt-2" style="border-top: 1px solid var(--border-color);">
+                            <% const approvalRate = summary.total > 0 ? ((summary.totalApproved / summary.total) * 100).toFixed(0) : 0; %>
+                            <small class="text-muted">Taxa de aprovação: <strong style="color:#10b981;"><%= approvalRate %>%</strong></small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Contemplados</div>
+                                <div style="font-size: 2rem; font-weight: 800; line-height: 1; color: #8b5cf6;"><%= summary.totalContemplated %></div>
+                                <small class="text-muted mt-2 d-block">Faturamento concluído</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(139,92,246,0.1); color: #8b5cf6;">
+                                <i class="bi bi-trophy-fill"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2 pt-2" style="border-top: 1px solid var(--border-color);">
+                            <% const contemplationRate = summary.total > 0 ? ((summary.totalContemplated / summary.total) * 100).toFixed(0) : 0; %>
+                            <small class="text-muted">Taxa de contemplação: <strong style="color:#8b5cf6;"><%= contemplationRate %>%</strong></small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="premium-info-card mb-3">
+                <div class="card-header-premium d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <!-- Status tabs -->
+                    <div class="btn-group shadow-sm" role="group">
+                        <a href="/admin/bids<%= type ? '?type=' + type : '' %>" class="btn btn-sm <%= !status ? 'btn-primary' : 'btn-outline-primary' %>">
+                            Todos <span class="badge bg-white text-primary ms-1"><%= summary.total %></span>
+                        </a>
+                        <a href="/admin/bids?status=PENDING<%= type ? '&type=' + type : '' %>" class="btn btn-sm <%= status === 'PENDING' ? 'btn-warning' : 'btn-outline-warning' %>">
+                            <i class="bi bi-clock me-1"></i>Pendentes <span class="badge bg-white text-warning ms-1"><%= summary.totalPending %></span>
+                        </a>
+                        <a href="/admin/bids?status=APPROVED<%= type ? '&type=' + type : '' %>" class="btn btn-sm <%= status === 'APPROVED' ? 'btn-success' : 'btn-outline-success' %>">
+                            <i class="bi bi-check-circle-fill me-1"></i>Aprovados <span class="badge bg-white text-success ms-1"><%= summary.totalApproved %></span>
+                        </a>
+                        <a href="/admin/bids?status=CONTEMPLATED<%= type ? '&type=' + type : '' %>" class="btn btn-sm <%= status === 'CONTEMPLATED' ? 'btn-primary' : 'btn-outline-primary' %>">
+                            <i class="bi bi-trophy-fill me-1"></i>Contemplados <span class="badge bg-white text-primary ms-1"><%= summary.totalContemplated %></span>
+                        </a>
+                        <a href="/admin/bids?status=REJECTED<%= type ? '&type=' + type : '' %>" class="btn btn-sm <%= status === 'REJECTED' ? 'btn-danger' : 'btn-outline-danger' %>">
+                            <i class="bi bi-x-circle-fill me-1"></i>Rejeitados <span class="badge bg-white text-danger ms-1"><%= summary.totalRejected %></span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Search + Type filter -->
+                <div class="p-3" style="border-top: 1px solid var(--border-color);">
+                    <form method="GET" action="/admin/bids" class="row g-2 align-items-end">
+                        <input type="hidden" name="status" value="<%= status %>">
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-1"><i class="bi bi-search me-1"></i>Buscar Cliente</label>
+                            <input type="text" class="form-control form-control-sm" name="search"
+                                placeholder="Nome, e-mail ou CPF..." value="<%= search %>" style="border-radius: 8px;">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-1"><i class="bi bi-tag me-1"></i>Tipo de Lance</label>
+                            <select class="form-select form-select-sm" name="type" style="border-radius: 8px;">
+                                <option value="">Todos os tipos</option>
+                                <option value="FREE"  <%= type === 'FREE'  ? 'selected' : '' %>>Livre</option>
+                                <option value="FIXED" <%= type === 'FIXED' ? 'selected' : '' %>>Fixo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex gap-2">
+                            <button type="submit" class="btn btn-sm btn-primary flex-1" style="border-radius: 8px;">
+                                <i class="bi bi-search me-1"></i>Filtrar
+                            </button>
+                            <a href="/admin/bids" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px;" title="Limpar">
+                                <i class="bi bi-x-lg"></i>
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Bids Table -->
+            <div class="premium-table-container mb-4">
+                <div class="px-4 py-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid var(--border-color);">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-lightning text-primary me-2"></i>
+                        Lista de Lances (<%= pagination.total %>)
+                    </h5>
+                </div>
+
+                <% if (bids && bids.length > 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-custom align-middle w-100" id="bidsTable">
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>Produto</th>
+                                    <th>Tipo</th>
+                                    <th>Valor</th>
+                                    <th>%</th>
+                                    <th>Data</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% bids.forEach(bid => { %>
+                                    <%
+                                    const creditValue   = Number(bid.subscription.creditValue);
+                                    const bidPct        = creditValue > 0 ? (Number(bid.amount) / creditValue * 100).toFixed(1) : '—';
+                                    %>
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="text-white fw-bold d-flex align-items-center justify-content-center me-3 shadow-sm"
+                                                    style="width:38px; height:38px; border-radius:10px; background:linear-gradient(135deg,var(--primary-color),var(--primary-dark)); font-size:1rem; flex-shrink:0;">
+                                                    <%= bid.subscription.user.name.charAt(0).toUpperCase() %>
+                                                </div>
+                                                <div>
+                                                    <a href="/admin/clients/<%= bid.subscription.userId %>" class="fw-semibold text-dark d-block text-decoration-none" style="font-size:0.9rem;">
+                                                        <%= bid.subscription.user.name %>
+                                                    </a>
+                                                    <div class="text-muted small"><%= bid.subscription.user.email %></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold" style="font-size:0.9rem;"><%= bid.subscription.plan.product.name %></div>
+                                            <div class="text-muted small"><%= bid.subscription.plan.name %></div>
+                                        </td>
+                                        <td>
+                                            <% if (bid.type === 'FIXED') { %>
+                                                <span class="badge-premium" style="background:rgba(13,110,253,0.1); color:#0d6efd; border:1px solid rgba(13,110,253,0.2);">Fixo</span>
+                                            <% } else if (bid.type === 'FREE') { %>
+                                                <span class="badge-premium" style="background:rgba(6,182,212,0.1); color:#0891b2; border:1px solid rgba(6,182,212,0.2);">Livre</span>
+                                            <% } else { %>
+                                                <span class="badge-premium" style="background:var(--bg-secondary); color:var(--text-secondary); border:1px solid var(--border-color);"><%= bid.type %></span>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <strong style="color:var(--success-color); font-size:0.95rem;">
+                                                R$ <%= Number(bid.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                            </strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge-premium" style="background:rgba(99,102,241,0.1); color:var(--primary-color); border:1px solid rgba(99,102,241,0.2); font-size:0.72rem;">
+                                                <%= bidPct %>%
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="text-muted" style="font-size:0.9rem;">
+                                                <i class="bi bi-calendar3 me-1"></i><%= new Date(bid.createdAt).toLocaleDateString('pt-BR') %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <% if (bid.status === 'PENDING') { %>
+                                                <span class="badge-premium" style="background:rgba(245,158,11,0.1); color:#f59e0b; border:1px solid rgba(245,158,11,0.2);"><i class="bi bi-clock-fill"></i> Pendente</span>
+                                            <% } else if (bid.status === 'APPROVED') { %>
+                                                <span class="badge-premium" style="background:rgba(16,185,129,0.1); color:#10b981; border:1px solid rgba(16,185,129,0.2);"><i class="bi bi-check-circle-fill"></i> Aprovado</span>
+                                            <% } else if (bid.status === 'REJECTED') { %>
+                                                <span class="badge-premium" style="background:rgba(239,68,68,0.1); color:#ef4444; border:1px solid rgba(239,68,68,0.2);"><i class="bi bi-x-circle-fill"></i> Rejeitado</span>
+                                            <% } else if (bid.status === 'CONTEMPLATED') { %>
+                                                <span class="badge-premium" style="background:rgba(139,92,246,0.1); color:#8b5cf6; border:1px solid rgba(139,92,246,0.2);"><i class="bi bi-trophy-fill"></i> Contemplado</span>
+                                            <% } else { %>
+                                                <span class="badge-premium" style="background:var(--bg-secondary); color:var(--text-secondary); border:1px solid var(--border-color);"><%= bid.status %></span>
+                                            <% } %>
+                                        </td>
+                                        <td class="text-end">
+                                            <a href="/admin/bids/<%= bid.id %>" class="btn btn-sm btn-outline-primary" style="border-radius:8px;" title="Ver Detalhes">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-5">
+                        <div class="mb-4 d-inline-block p-4 rounded-circle" style="background:rgba(99,102,241,0.1);">
+                            <i class="bi bi-lightning text-primary" style="font-size:3rem;"></i>
+                        </div>
+                        <h5 class="fw-bold">Nenhum lance encontrado</h5>
+                        <p class="text-muted mb-0">Quando os clientes derem lances, eles aparecerão aqui.</p>
+                    </div>
+                <% } %>
+            </div>
+
+            <!-- Pagination -->
+            <% if (pagination && pagination.totalPages > 1) { %>
+                <div class="d-flex justify-content-between align-items-center mb-4 px-1">
+                    <small class="text-muted">Exibindo <%= bids.length %> de <%= pagination.total %> lances</small>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <% if (pagination.hasPrevPage) { %>
+                                <li class="page-item"><a class="page-link" href="<%= buildPageUrl(pagination.page - 1) %>"><i class="bi bi-chevron-left"></i></a></li>
+                            <% } %>
+                            <% for (let p = Math.max(1, pagination.page - 2); p <= Math.min(pagination.totalPages, pagination.page + 2); p++) { %>
+                                <li class="page-item <%= p === pagination.page ? 'active' : '' %>">
+                                    <a class="page-link" href="<%= buildPageUrl(p) %>"><%= p %></a>
+                                </li>
+                            <% } %>
+                            <% if (pagination.hasNextPage) { %>
+                                <li class="page-item"><a class="page-link" href="<%= buildPageUrl(pagination.page + 1) %>"><i class="bi bi-chevron-right"></i></a></li>
+                            <% } %>
+                        </ul>
+                    </nav>
+                </div>
+            <% } %>
+
+            <div class="mb-5"></div>
+        </div>
+
+<%- include('../../partials/footer') %>

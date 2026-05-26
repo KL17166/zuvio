@@ -1,0 +1,134 @@
+<%- include('../../partials/header') %>
+
+    <%- include('../../partials/sidebar', { path: '/payments' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title">Pagamentos Atrasados</h1>
+                    <p class="text-muted mb-0">Parcelas vencidas e não pagas</p>
+                </div>
+                <div class="top-bar-actions">
+                    <a href="/admin/payments" class="btn btn-outline-secondary shadow-sm" style="border-radius: 10px;">
+                        <i class="bi bi-arrow-left me-2"></i>Voltar
+                    </a>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="bi bi-moon-stars" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Total Overdue -->
+            <div class="row mb-5">
+                <div class="col-12">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">🚨 Total em Atraso</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: #ef4444;">
+                                    <span style="font-size: 1.2rem;">R$</span>
+                                    <%= totalOverdue.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                </div>
+                                <small class="text-muted mt-2 d-block">Soma de todas as parcelas vencidas</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; width: 56px; height: 56px; font-size: 1.8rem;">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grouped by User -->
+            <% const users=Object.values(groupedByUser); %>
+            <% if (users.length > 0) { %>
+                <% users.forEach(userData => { %>
+                    <div class="premium-info-card mb-4">
+                        <div class="card-header-premium d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="user-avatar me-3 shadow-sm" style="width: 40px; height: 40px; border-radius: 10px;">
+                                    <%= userData.user.name.charAt(0).toUpperCase() %>
+                                </div>
+                                <div>
+                                    <strong class="d-block" style="font-size: 1rem;"><%= userData.user.name %></strong>
+                                    <small class="text-muted"><%= userData.user.email %> • <%= userData.user.phone || '-' %></small>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge-premium" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 0.9rem;">
+                                    R$ <%= userData.totalOverdue.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                </span>
+                                <br><small class="text-muted"><%= userData.installments.length %> parcela(s)</small>
+                            </div>
+                        </div>
+
+                        <div class="p-0">
+                            <div class="table-responsive">
+                                <table class="table table-custom align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Produto</th>
+                                            <th>Parcela</th>
+                                            <th>Valor</th>
+                                            <th>Vencimento</th>
+                                            <th>Dias Atraso</th>
+                                            <th class="text-end">Ação</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% userData.installments.forEach(inst => { %>
+                                            <% const daysOverdue = Math.floor((new Date() - new Date(inst.dueDate)) / (1000 * 60 * 60 * 24)); %>
+                                            <tr>
+                                                <td><%= inst.subscription.plan.product.name %></td>
+                                                <td><%= inst.number %>/<%= inst.subscription.totalInstallments %></td>
+                                                <td><strong style="color: var(--success-color);">R$ <%= Number(inst.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %></strong></td>
+                                                <td><span class="text-muted"><i class="bi bi-calendar3 me-1"></i><%= new Date(inst.dueDate).toLocaleDateString('pt-BR') %></span></td>
+                                                <td>
+                                                    <span class="badge-premium" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);">
+                                                        <i class="bi bi-exclamation-circle-fill"></i><%= daysOverdue %> dias
+                                                    </span>
+                                                </td>
+                                                <td class="text-end">
+                                                    <form action="/admin/payments/<%= inst.id %>/mark-paid" method="POST" style="display: inline;">
+                                                        <input type="hidden" name="paymentMethod" value="ADMIN_MANUAL">
+                                                        <input type="hidden" name="paymentDate" value="<%= new Date().toISOString().split('T')[0] %>">
+                                                        <button type="submit" class="btn btn-sm btn-success" style="border-radius: 8px;">
+                                                            <i class="bi bi-check-lg me-1"></i>Pagar
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <% }); %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 p-3" style="border-top: 1px solid var(--border-color);">
+                            <a href="/admin/clients/<%= userData.user.id %>" class="btn btn-outline-primary btn-sm" style="border-radius: 8px;">
+                                <i class="bi bi-person me-1"></i>Ver Cliente
+                            </a>
+                            <a href="mailto:<%= userData.user.email %>" class="btn btn-outline-secondary btn-sm" style="border-radius: 8px;">
+                                <i class="bi bi-envelope me-1"></i>Email
+                            </a>
+                            <% if (userData.user.phone) { %>
+                                <a href="https://wa.me/55<%= userData.user.phone.replace(/\D/g, '') %>" class="btn btn-outline-success btn-sm" style="border-radius: 8px;" target="_blank">
+                                    <i class="bi bi-whatsapp me-1"></i>WhatsApp
+                                </a>
+                            <% } %>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <div class="premium-info-card text-center py-5">
+                    <div class="mb-4 d-inline-block p-4 rounded-circle" style="background: rgba(16, 185, 129, 0.1);">
+                        <i class="bi bi-check-circle-fill" style="font-size: 3rem; color: #10b981;"></i>
+                    </div>
+                    <h5 class="text-dark fw-bold">Nenhum pagamento atrasado!</h5>
+                    <p class="text-muted mb-0">Todos os clientes estão em dia.</p>
+                </div>
+            <% } %>
+        </div>
+
+<%- include('../../partials/footer') %>

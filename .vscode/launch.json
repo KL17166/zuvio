@@ -1,0 +1,28 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "App-android-web",
+            "cwd": "App-android-web",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "App-android-web (profile mode)",
+            "cwd": "App-android-web",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "App-android-web (release mode)",
+            "cwd": "App-android-web",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}

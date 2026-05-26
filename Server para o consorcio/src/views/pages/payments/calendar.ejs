@@ -1,0 +1,99 @@
+<%- include('../../partials/header') %>
+
+    <%- include('../../partials/sidebar', { path: '/payments' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title">Calendário de Vencimentos</h1>
+                    <p class="text-muted mb-0">Visualize parcelas por data</p>
+                </div>
+                <div class="top-bar-actions">
+                    <a href="/admin/payments" class="btn btn-outline-secondary shadow-sm" style="border-radius: 10px;">
+                        <i class="bi bi-arrow-left me-2"></i>Voltar
+                    </a>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="bi bi-moon-stars" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Month Navigation -->
+            <div class="premium-info-card mb-4">
+                <div class="d-flex justify-content-between align-items-center p-4">
+                    <a href="/admin/payments/calendar?year=<%= month === 1 ? year - 1 : year %>&month=<%= month === 1 ? 12 : month - 1 %>"
+                        class="btn btn-outline-primary" style="border-radius: 10px;">
+                        <i class="bi bi-chevron-left"></i> Anterior
+                    </a>
+                    <h4 class="mb-0 fw-bold">
+                        <%= new Date(year, month - 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) %>
+                    </h4>
+                    <a href="/admin/payments/calendar?year=<%= month === 12 ? year + 1 : year %>&month=<%= month === 12 ? 1 : month + 1 %>"
+                        class="btn btn-outline-primary" style="border-radius: 10px;">
+                        Próximo <i class="bi bi-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Calendar Grid -->
+            <div class="row g-3">
+                <% const daysInMonth=new Date(year, month, 0).getDate();
+                   const firstDay=new Date(year, month - 1, 1).getDay(); %>
+
+                <!-- Day headers -->
+                <% ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].forEach(day => { %>
+                    <div class="col text-center">
+                        <strong class="text-muted small text-uppercase"><%= day %></strong>
+                    </div>
+                <% }); %>
+
+                <!-- Empty cells for first week -->
+                <% for (let i=0; i < firstDay; i++) { %>
+                    <div class="col"></div>
+                <% } %>
+
+                <!-- Days -->
+                <% for (let day=1; day <= daysInMonth; day++) { %>
+                    <% const dayData=calendar[day] || []; %>
+                    <div class="col">
+                        <div class="p-2 rounded-3 text-center"
+                            style="background: var(--bg-primary); min-height: 80px; border: 1px solid var(--border-color); border-radius: 12px !important; transition: all 0.2s;">
+                            <strong style="font-size: 0.9rem;"><%= day %></strong>
+                            <% if (dayData.length > 0) { %>
+                                <div class="mt-1 d-flex justify-content-center gap-1 flex-wrap">
+                                    <% const pending=dayData.filter(d => d.status === 'PENDING').length;
+                                       const paid = dayData.filter(d => d.status === 'PAID').length;
+                                       const overdue = dayData.filter(d => d.status === 'OVERDUE').length;
+                                    %>
+                                    <% if (pending > 0) { %>
+                                        <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; font-size: 0.7rem;"><%= pending %></span>
+                                    <% } %>
+                                    <% if (paid > 0) { %>
+                                        <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-size: 0.7rem;"><%= paid %></span>
+                                    <% } %>
+                                    <% if (overdue > 0) { %>
+                                        <span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #dc2626; font-size: 0.7rem;"><%= overdue %></span>
+                                    <% } %>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+                    <% if ((firstDay + day) % 7 === 0) { %>
+            </div>
+            <div class="row g-3">
+                <% } %>
+                <% } %>
+            </div>
+
+            <!-- Legend -->
+            <div class="premium-info-card mt-4 mb-5">
+                <div class="d-flex gap-4 justify-content-center p-3">
+                    <span><span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706;">N</span> Pendentes</span>
+                    <span><span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669;">N</span> Pagas</span>
+                    <span><span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #dc2626;">N</span> Atrasadas</span>
+                </div>
+            </div>
+        </div>
+
+<%- include('../../partials/footer') %>

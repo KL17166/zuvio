@@ -1,0 +1,293 @@
+<%- include('../../partials/header') %>
+
+    <%- include('../../partials/sidebar', { path: '/users' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title">Usuários do Sistema</h1>
+                    <p class="text-muted mb-0">Gerencie todos os acessos e perfis</p>
+                </div>
+                <div class="top-bar-actions">
+                    <a href="/admin/users/new" class="btn btn-primary shadow-sm" style="border-radius: 10px;">
+                        <i class="bi bi-person-plus-fill me-2"></i>Cadastrar Usuário
+                    </a>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="bi bi-moon-stars" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            <% if (typeof success_msg !=='undefined' && success_msg && success_msg.length> 0) { %>
+                <div class="alert alert-success alert-dismissible fade show shadow-sm border-0" role="alert" style="border-radius: 12px;">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <%= success_msg %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+
+            <!-- Stats Cards -->
+            <% 
+            const totalUsers = users.length;
+            const adminUsers = users.filter(u => ['MASTER', 'MANAGER', 'SUPPORT'].includes(u.role)).length;
+            const clientUsers = users.filter(u => u.role === 'CLIENT').length;
+            const recentUsers = users.filter(u => {
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                return new Date(u.createdAt) > thirtyDaysAgo;
+            }).length;
+            %>
+
+            <div class="row g-4 mb-5">
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Total de Usuários</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1;"><%= totalUsers %></div>
+                                <small class="text-muted mt-2 d-block">Cadastrados no sistema</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(13, 110, 253, 0.1); color: #0d6efd;">
+                                <i class="bi bi-people-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Clientes</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: #10b981;"><%= clientUsers %></div>
+                                <small class="text-muted mt-2 d-block">Contas de acesso padrão</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                                <i class="bi bi-person-badge-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Novos (30d)</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: #f59e0b;"><%= recentUsers %></div>
+                                <small class="text-muted mt-2 d-block">Cadastros recentes</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                                <i class="bi bi-person-plus-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Administradores</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: #ef4444;"><%= adminUsers %></div>
+                                <small class="text-muted mt-2 d-block">Acesso total ao painel</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+                                <i class="bi bi-shield-lock-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Table -->
+            <h4 class="mb-4 fw-bold"><i class="bi bi-person-lines-fill me-2 text-primary"></i>Diretório de Usuários</h4>
+            <div class="premium-table-container">
+                <% if (users && users.length> 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-custom align-middle w-100" id="usersTable">
+                            <thead>
+                                <tr>
+                                    <th style="border-top-left-radius: 16px;">Usuário</th>
+                                    <th>Contato</th>
+                                    <th>Documento (CPF)</th>
+                                    <th>Permissão</th>
+                                    <th>Data de Cadastro</th>
+                                    <th class="text-center" style="border-top-right-radius: 16px;">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% users.forEach(user=> { %>
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="user-avatar text-white fw-bold d-flex align-items-center justify-content-center me-3 shadow-sm"
+                                                    style="width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); font-size: 1.1rem;">
+                                                    <%= user.name.charAt(0).toUpperCase() %>
+                                                </div>
+                                                <div>
+                                                    <strong class="text-dark d-block" style="font-size: 0.95rem;">
+                                                        <%= user.name %>
+                                                    </strong>
+                                                    <small class="text-muted"><i class="bi bi-globe me-1" style="font-size: 0.7rem;"></i>Perfil de Acesso</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center text-muted" style="font-size: 0.9rem;">
+                                                <i class="bi bi-envelope me-2" style="color: var(--text-secondary);"></i>
+                                                <%= user.email %>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div style="font-family: monospace; font-size: 0.9rem; background: var(--bg-secondary); padding: 0.3rem 0.6rem; border-radius: 6px; display: inline-block;">
+                                                <i class="bi bi-person-vcard me-1 text-muted"></i>
+                                                <%= user.cpf ? user.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4' ) : '-' %>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <% if(user.role==='MASTER') { %>
+                                                <span class="badge-premium" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);">
+                                                    <i class="bi bi-shield-fill-check me-1"></i>MASTER
+                                                </span>
+                                            <% } else if(user.role==='MANAGER') { %>
+                                                <span class="badge-premium" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2);">
+                                                    <i class="bi bi-briefcase-fill me-1"></i>MANAGER
+                                                </span>
+                                            <% } else if(user.role==='SUPPORT') { %>
+                                                <span class="badge-premium" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2);">
+                                                    <i class="bi bi-headset me-1"></i>SUPPORT
+                                                </span>
+                                            <% } else { %>
+                                                <span class="badge-premium" style="background: rgba(13, 110, 253, 0.1); color: #0d6efd; border: 1px solid rgba(13, 110, 253, 0.2);">
+                                                    <i class="bi bi-person-fill me-1"></i>CLIENTE
+                                                </span>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center text-muted" style="font-size: 0.9rem;">
+                                                <i class="bi bi-calendar3 me-2" style="color: var(--text-secondary);"></i>
+                                                <%= new Date(user.createdAt).toLocaleDateString('pt-BR') %>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="d-flex justify-content-center gap-2">
+                                                <% if(user.role === 'CLIENT') { %>
+                                                <a href="/admin/clients/<%= user.id %>"
+                                                    class="btn-action view text-primary" title="Ver Contratos">
+                                                    <i class="bi bi-eye-fill"></i>
+                                                </a>
+                                                <% } %>
+                                                <a href="/admin/users/<%= user.id %>/edit"
+                                                    class="btn-action edit text-secondary" title="Editar">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </a>
+                                                <button type="button" class="btn-action key text-secondary"
+                                                    onclick="confirmResetPassword('<%= user.id %>', '<%= user.name %>')"
+                                                    title="Resetar Senha">
+                                                    <i class="bi bi-key-fill"></i>
+                                                </button>
+                                                <button type="button" class="btn-action delete text-secondary"
+                                                    onclick="confirmDelete('<%= user.id %>', '<%= user.name %>')"
+                                                    title="Excluir">
+                                                    <i class="bi bi-trash3-fill"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-5">
+                        <div class="mb-4 d-inline-block p-4 rounded-circle" style="background: rgba(var(--primary-rgb, 13, 110, 253), 0.1);">
+                            <i class="bi bi-people text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="text-dark fw-bold">Nenhum usuário encontrado</h5>
+                        <p class="text-muted mb-0">Novos cadastros aparecerão nesta lista.</p>
+                        <a href="/admin/users/new" class="btn btn-primary mt-4" style="border-radius: 10px;">
+                            <i class="bi bi-plus-lg me-2"></i>Cadastrar Primeiro Usuário
+                        </a>
+                    </div>
+                <% } %>
+            </div>
+            <div class="mb-5"></div>
+        </div>
+
+        <!-- Modals -->
+        <div class="modal fade" id="deleteModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header py-3 px-4" style="background: rgba(239, 68, 68, 0.1);">
+                        <h5 class="modal-title fw-bold text-danger d-flex align-items-center">
+                            <i class="bi bi-exclamation-triangle-fill me-2 bg-danger text-white p-2 rounded"></i>
+                            Confirmar Exclusão
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4 text-center">
+                        <i class="bi bi-trash3 text-danger mb-3" style="font-size: 3rem;"></i>
+                        <h5 class="fw-bold mb-3">Excluir Usuário permanentemente?</h5>
+                        <p class="text-muted mb-4">Tem certeza que deseja apagar os dados de <strong id="deleteUserName" class="text-dark"></strong>? Esta ação é irreversível.</p>
+                    </div>
+                    <div class="modal-footer py-3 px-4" style="background: var(--bg-secondary);">
+                        <button type="button" class="btn btn-light fw-medium px-4" data-bs-dismiss="modal" style="border-radius: 10px;">Cancelar</button>
+                        <form id="deleteForm" action="" method="POST" class="m-0">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <button type="submit" class="btn btn-danger fw-medium px-4" style="border-radius: 10px;">
+                                Sim, Excluir Usuário
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="resetPasswordModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header py-3 px-4" style="background: rgba(245, 158, 11, 0.1);">
+                        <h5 class="modal-title fw-bold text-warning-emphasis d-flex align-items-center">
+                            <i class="bi bi-key-fill me-2 bg-warning text-dark p-2 rounded"></i>
+                            Resetar Senha de Acesso
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4 text-center">
+                        <i class="bi bi-shield-lock text-warning mb-3" style="font-size: 3rem;"></i>
+                        <h5 class="fw-bold mb-3">Gerar Nova Senha?</h5>
+                        <p class="text-muted mb-0">Uma nova senha aleatória será gerada para <strong id="resetUserName" class="text-dark"></strong> e exibida na tela a seguir.</p>
+                    </div>
+                    <div class="modal-footer py-3 px-4" style="background: var(--bg-secondary);">
+                        <button type="button" class="btn btn-light fw-medium px-4" data-bs-dismiss="modal" style="border-radius: 10px;">Cancelar</button>
+                        <form id="resetPasswordForm" action="" method="POST" class="m-0">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <button type="submit" class="btn btn-warning fw-medium px-4" style="border-radius: 10px;">
+                                Resetar Senha Agora
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function confirmDelete(id, name) {
+                document.getElementById('deleteUserName').textContent = name;
+                document.getElementById('deleteForm').action = '/admin/users/' + id + '/delete';
+                var myModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+                myModal.show();
+            }
+
+            function confirmResetPassword(id, name) {
+                document.getElementById('resetUserName').textContent = name;
+                document.getElementById('resetPasswordForm').action = '/admin/users/' + id + '/reset-password';
+                var myModal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+                myModal.show();
+            }
+        </script>
+
+<%- include('../../partials/footer') %>

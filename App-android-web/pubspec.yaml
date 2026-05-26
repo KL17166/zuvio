@@ -1,0 +1,65 @@
+name: katari
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management
+  provider: ^6.1.1
+
+  # Networking & Data
+  http: ^1.2.0
+
+  # UI & Assets
+  google_fonts: ^6.1.0
+  image_picker: ^1.0.7
+  intl: ^0.19.0
+  mask_text_input_formatter: ^2.9.0
+  
+  # Storage
+  shared_preferences: ^2.5.3
+  flutter_secure_storage: ^9.0.0
+
+  # Biometric Auth
+  local_auth: ^2.2.0
+  local_auth_android: ^1.0.43
+
+  # Icons
+  cupertino_icons: ^1.0.8
+  device_info_plus: ^12.3.0
+  package_info_plus: ^9.0.0
+  pdf: ^3.11.3
+  printing: ^5.14.2
+  path_provider: ^2.1.5
+  camera: ^0.11.4
+  freerasp: ^7.4.0
+  crypto: ^3.0.7
+  http_parser: ^4.1.2
+
+  # Assets
+  # assets:
+  #   - assets/motorcycles/
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_icons:
+  android: "launcher_icon"
+  ios: false
+  image_path: "assets/images/app_logo.png"
+  min_sdk_android: 21
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/

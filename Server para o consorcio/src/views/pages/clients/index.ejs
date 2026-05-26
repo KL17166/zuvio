@@ -1,0 +1,359 @@
+<%- include('../../partials/header') %>
+
+    <%- include('../../partials/sidebar', { path: '/clients' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title">Gestão de Clientes</h1>
+                    <p class="text-muted mb-0">Visualize e gerencie todos os clientes do sistema</p>
+                </div>
+                <div class="top-bar-actions">
+                    <a href="/admin/clients/new" class="btn btn-primary shadow-sm me-2" style="border-radius: 10px;">
+                        <i class="bi bi-person-plus-fill me-2"></i>Cadastrar Cliente
+                    </a>
+                    <!-- View Toggle -->
+                    <div class="btn-group shadow-sm me-2" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-primary active" id="btnTableView" onclick="setView('table')" title="Tabela">
+                            <i class="bi bi-list-ul"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="btnCardsView" onclick="setView('cards')" title="Cards">
+                            <i class="bi bi-grid-3x3-gap"></i>
+                        </button>
+                    </div>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="bi bi-moon-stars" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            <% if (typeof success_msg !=='undefined' && success_msg && success_msg.length> 0) { %>
+                <div class="alert alert-success alert-dismissible fade show shadow-sm border-0" role="alert" style="border-radius: 12px;">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <%= success_msg %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+
+            <!-- Stats Cards -->
+            <% const totalClients=clients.length;
+               const clientsWithContracts=clients.filter(c=> c.totalContracts > 0).length;
+               const clientsWithActiveContracts = clients.filter(c => c.activeContracts > 0).length;
+               const totalActiveContracts = clients.reduce((sum, c) => sum + c.activeContracts, 0);
+            %>
+
+            <div class="row g-4 mb-5">
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Total de Clientes</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: var(--primary-color);">
+                                    <%= totalClients %>
+                                </div>
+                                <small class="text-muted mt-2 d-block">Cadastrados no sistema</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">
+                                <i class="bi bi-people-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Com Contratos Ativos</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: #10b981;">
+                                    <%= clientsWithActiveContracts %>
+                                </div>
+                                <small class="text-muted mt-2 d-block">
+                                    <%= totalClients > 0 ? ((clientsWithActiveContracts / totalClients) * 100).toFixed(1) : 0 %>% do total
+                                </small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Total Contratos Ativos</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: #3b82f6;">
+                                    <%= totalActiveContracts %>
+                                </div>
+                                <small class="text-muted mt-2 d-block">Contratos em andamento</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+                                <i class="bi bi-file-earmark-text-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Com Histórico</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: #f59e0b;">
+                                    <%= clientsWithContracts %>
+                                </div>
+                                <small class="text-muted mt-2 d-block">Já contrataram alguma vez</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                                <i class="bi bi-clock-history"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SHARED HEADER -->
+            <div class="premium-info-card mb-4">
+                <div class="card-header-premium d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-people text-primary me-2"></i>
+                        Lista de Clientes (<%= clients.length %>)
+                    </h5>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="text-muted small mb-0" style="white-space: nowrap;">Exibir</label>
+                            <select id="sharedPerPage" class="form-select form-select-sm" style="width: auto; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color);">
+                                <option value="12">12</option>
+                                <option value="25" selected>25</option>
+                                <option value="50">50</option>
+                                <option value="-1">Todos</option>
+                            </select>
+                            <label class="text-muted small mb-0" style="white-space: nowrap;">resultados por página</label>
+                        </div>
+                        <div class="position-relative" style="width: 220px;">
+                            <i class="bi bi-search position-absolute" style="left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary);"></i>
+                            <input type="text" id="sharedSearch" class="form-control form-control-sm" placeholder="Buscar registros"
+                                style="padding-left: 36px; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color);">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABLE VIEW -->
+            <div class="clients-view" id="tableView">
+            <div class="premium-table-container mb-4">
+
+                <% if (clients && clients.length> 0) { %>
+                    <div class="p-0">
+                        <div class="table-responsive">
+                            <table class="table table-custom align-middle w-100" id="clientsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Cliente</th>
+                                        <th>CPF</th>
+                                        <th>Contato</th>
+                                        <th>Contratos</th>
+                                        <th>Cadastro</th>
+                                        <th class="text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% clients.forEach(client=> { %>
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="user-avatar text-white fw-bold d-flex align-items-center justify-content-center me-3 shadow-sm"
+                                                        style="width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); font-size: 1rem;">
+                                                        <%= client.name.charAt(0).toUpperCase() %>
+                                                    </div>
+                                                    <div>
+                                                        <strong class="text-dark d-block" style="font-size: 0.95rem;">
+                                                            <%= client.name %>
+                                                        </strong>
+                                                        <div class="text-muted small"><%= client.email %></div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <code style="font-size: 0.85rem; background: var(--bg-secondary); padding: 0.2rem 0.5rem; border-radius: 4px;"><%= client.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') %></code>
+                                            </td>
+                                            <td>
+                                                <% if (client.phone) { %>
+                                                    <span class="text-muted" style="font-size: 0.9rem;"><i class="bi bi-phone-fill text-success me-1"></i><%= client.phone %></span>
+                                                <% } else { %>
+                                                    <span class="text-muted">-</span>
+                                                <% } %>
+                                            </td>
+                                            <td>
+                                                <% if (client.activeContracts > 0) { %>
+                                                    <span class="badge-premium" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2);">
+                                                        <i class="bi bi-check-circle-fill"></i><%= client.activeContracts %> Ativo<%= client.activeContracts > 1 ? 's' : '' %>
+                                                    </span>
+                                                <% } %>
+                                                <% if (client.totalContracts > client.activeContracts) { %>
+                                                    <span class="badge-premium ms-1" style="background: rgba(108, 117, 125, 0.1); color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.2);">
+                                                        <%= client.totalContracts - client.activeContracts %> Outro<%= (client.totalContracts - client.activeContracts) > 1 ? 's' : '' %>
+                                                    </span>
+                                                <% } %>
+                                                <% if (client.totalContracts === 0) { %>
+                                                    <span class="text-muted small">Sem contratos</span>
+                                                <% } %>
+                                            </td>
+                                            <td>
+                                                <span class="text-muted" style="font-size: 0.9rem;">
+                                                    <i class="bi bi-calendar3 me-1"></i><%= new Date(client.createdAt).toLocaleDateString('pt-BR') %>
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="d-flex justify-content-center gap-2">
+                                                    <a href="/admin/clients/<%= client.id %>" class="btn btn-sm btn-outline-primary" style="border-radius: 8px;" title="Ver Detalhes">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                    <a href="/admin/contracts/new?clientId=<%= client.id %>" class="btn btn-sm btn-outline-success" style="border-radius: 8px;" title="Novo Contrato">
+                                                        <i class="bi bi-plus-lg"></i>
+                                                    </a>
+                                                    <a href="/admin/clients/<%= client.id %>/edit" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px;" title="Editar">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                    <% if (client.activeContracts === 0 && ['MASTER', 'MANAGER'].includes(user.role)) { %>
+                                                        <button type="button" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;"
+                                                            onclick="deleteClient('<%= client.id %>', '<%= client.name %>')" title="Deletar">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    <% } %>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-5">
+                        <div class="mb-4 d-inline-block p-4 rounded-circle" style="background: rgba(99, 102, 241, 0.1);">
+                            <i class="bi bi-people text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="text-dark fw-bold">Nenhum cliente encontrado</h5>
+                        <p class="text-muted mb-0">Os clientes cadastrados aparecerão aqui.</p>
+                    </div>
+                <% } %>
+            </div>
+            </div> <!-- /tableView -->
+
+            <!-- CARDS VIEW -->
+            <div class="clients-view" id="cardsView" style="display: none;">
+                <% if (clients && clients.length > 0) { %>
+                    <div class="row g-4" id="clientsCardsGrid">
+                        <% clients.forEach(client => { %>
+                            <div class="col-md-6 col-lg-4 col-xl-3">
+                                <div class="premium-stat-card h-100" style="overflow: hidden;">
+                                    <div class="p-4">
+                                        <!-- Avatar & Name -->
+                                        <div class="text-center mb-3">
+                                            <div class="mx-auto mb-2" style="width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.5rem;">
+                                                <%= client.name.charAt(0).toUpperCase() %>
+                                            </div>
+                                            <strong class="d-block" style="font-size: 0.95rem;"><%= client.name %></strong>
+                                            <small class="text-muted"><%= client.email %></small>
+                                        </div>
+
+                                        <!-- Info Grid -->
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between py-2" style="border-bottom: 1px solid var(--border-color);">
+                                                <span class="text-muted small">CPF</span>
+                                                <code style="font-size: 0.8rem;"><%= client.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') %></code>
+                                            </div>
+                                            <div class="d-flex justify-content-between py-2" style="border-bottom: 1px solid var(--border-color);">
+                                                <span class="text-muted small">Telefone</span>
+                                                <span class="small"><%= client.phone || '-' %></span>
+                                            </div>
+                                            <div class="d-flex justify-content-between py-2" style="border-bottom: 1px solid var(--border-color);">
+                                                <span class="text-muted small">Contratos</span>
+                                                <span>
+                                                    <% if (client.activeContracts > 0) { %>
+                                                        <span class="badge-premium" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); font-size: 0.7rem;"><%= client.activeContracts %> ativo<%= client.activeContracts > 1 ? 's' : '' %></span>
+                                                    <% } else { %>
+                                                        <span class="text-muted small">Sem contratos</span>
+                                                    <% } %>
+                                                </span>
+                                            </div>
+                                            <div class="d-flex justify-content-between py-2">
+                                                <span class="text-muted small">Cadastro</span>
+                                                <span class="small"><%= new Date(client.createdAt).toLocaleDateString('pt-BR') %></span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Actions -->
+                                        <div class="d-flex gap-2">
+                                            <a href="/admin/clients/<%= client.id %>" class="btn btn-sm btn-outline-primary flex-1" style="border-radius: 8px;">
+                                                <i class="bi bi-eye me-1"></i>Ver
+                                            </a>
+                                            <a href="/admin/contracts/new?clientId=<%= client.id %>" class="btn btn-sm btn-outline-success" style="border-radius: 8px;" title="Novo Contrato">
+                                                <i class="bi bi-plus-lg"></i>
+                                            </a>
+                                            <a href="/admin/clients/<%= client.id %>/edit" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px;" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-5">
+                        <div class="mb-4 d-inline-block p-4 rounded-circle" style="background: rgba(99, 102, 241, 0.1);">
+                            <i class="bi bi-people text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="text-dark fw-bold">Nenhum cliente encontrado</h5>
+                        <p class="text-muted mb-0">Os clientes cadastrados aparecerão aqui.</p>
+                    </div>
+                <% } %>
+                <!-- Cards Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-3 px-1" id="clientsCardsPagination" style="display: none;">
+                    <small class="text-muted" id="clientsCardsInfo"></small>
+                    <nav><ul class="pagination pagination-sm mb-0" id="clientsCardsPager"></ul></nav>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function deleteClient(id, name) {
+                document.getElementById('deleteName').textContent = name;
+                document.getElementById('deleteForm').action = '/admin/users/' + id + '/delete';
+                new bootstrap.Modal(document.getElementById('deleteModal')).show();
+            }
+        </script>
+
+        <!-- Delete Modal -->
+        <div class="modal fade" id="deleteModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content modal-content-premium">
+                    <div class="modal-header modal-header-premium py-3 px-4" style="background: rgba(239, 68, 68, 0.1);">
+                        <h5 class="modal-title fw-bold text-danger"><i class="bi bi-trash-fill me-2"></i>Excluir Cliente</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="deleteForm" method="POST" class="m-0">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <div class="modal-body p-4">
+                            <p class="mb-4">Tem certeza que deseja excluir o cliente <strong id="deleteName" class="text-dark"></strong>?</p>
+                            <div class="alert alert-danger border-0 shadow-sm" style="border-radius: 10px; background: rgba(239, 68, 68, 0.1); color: #b91c1c;">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                Esta ação não pode ser desfeita!
+                            </div>
+                        </div>
+                        <div class="modal-footer modal-footer-premium py-3 px-4" style="background: var(--bg-secondary);">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px;">Cancelar</button>
+                            <button type="submit" class="btn btn-danger" style="border-radius: 8px;">Sim, excluir</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+<%- include('../../partials/footer') %>

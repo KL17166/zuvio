@@ -1,0 +1,653 @@
+<%- include('../../partials/header') %>
+
+    <%- include('../../partials/sidebar', { path: '/reports' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title">Relatórios</h1>
+                    <p class="text-muted mb-0">Estatísticas e métricas do sistema</p>
+                </div>
+                <div class="top-bar-actions">
+                    <button class="btn btn-sm btn-outline-success" onclick="exportReport()">
+                        <i class="bi bi-file-earmark-excel me-1"></i>Exportar
+                    </button>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="bi bi-moon-stars" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Period Filter -->
+            <div class="premium-info-card mb-4">
+                <div class="card-header-premium d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-funnel me-2 text-primary"></i>Período de Análise</h6>
+                    <form method="GET" action="/admin/reports" class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="btn-group shadow-sm" role="group">
+                            <a href="/admin/reports?period=today"    class="btn btn-sm <%= period === 'today'    ? 'btn-primary' : 'btn-outline-primary' %>">Hoje</a>
+                            <a href="/admin/reports?period=week"     class="btn btn-sm <%= period === 'week'     ? 'btn-primary' : 'btn-outline-primary' %>">7 dias</a>
+                            <a href="/admin/reports?period=month"    class="btn btn-sm <%= period === 'month'    ? 'btn-primary' : 'btn-outline-primary' %>">Mês</a>
+                            <a href="/admin/reports?period=3months"  class="btn btn-sm <%= period === '3months'  ? 'btn-primary' : 'btn-outline-primary' %>">3 Meses</a>
+                            <a href="/admin/reports?period=year"     class="btn btn-sm <%= period === 'year'     ? 'btn-primary' : 'btn-outline-primary' %>">Ano</a>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <input type="date" name="start" class="form-control form-control-sm" value="<%= customStart %>" style="width: 150px; border-radius: 8px;">
+                            <span class="text-muted small">até</span>
+                            <input type="date" name="end"   class="form-control form-control-sm" value="<%= customEnd %>"   style="width: 150px; border-radius: 8px;">
+                            <input type="hidden" name="period" value="custom">
+                            <button type="submit" class="btn btn-sm btn-primary" style="border-radius: 8px;">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- SECTION 1 — All-time Financial Overview                     -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Total Recebido</div>
+                                <div style="font-size: 1.8rem; font-weight: 800; line-height: 1; color: #10b981;">
+                                    <span style="font-size: 1rem;">R$</span> <%= stats.totalReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                </div>
+                                <small class="text-muted mt-2 d-block">Liquidado na conta</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                                <i class="bi bi-cash-stack"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Em Atraso</div>
+                                <div style="font-size: 1.8rem; font-weight: 800; line-height: 1; color: #ef4444;">
+                                    <span style="font-size: 1rem;">R$</span> <%= stats.totalOverdue.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                </div>
+                                <small class="text-muted mt-2 d-block"><%= stats.overdueCount %> parcelas vencidas</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">A Receber</div>
+                                <div style="font-size: 1.8rem; font-weight: 800; line-height: 1; color: #f59e0b;">
+                                    <span style="font-size: 1rem;">R$</span> <%= stats.totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                </div>
+                                <small class="text-muted mt-2 d-block">Previsão futura</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                                <i class="bi bi-clock-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Reembolsado</div>
+                                <div style="font-size: 1.8rem; font-weight: 800; line-height: 1; color: #3b82f6;">
+                                    <span style="font-size: 1rem;">R$</span> <%= stats.totalRefunded.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                </div>
+                                <small class="text-muted mt-2 d-block">Estornos realizados</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+                                <i class="bi bi-arrow-return-left"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- SECTION 2 — Period Metrics                                  -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="info-label mb-1">Recebido no Período</div>
+                        <div class="fw-bold mb-1" style="font-size: 1.6rem; color: #10b981;">
+                            R$ <%= period_stats.periodReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                        </div>
+                        <% if (period_stats.receivedChange !== null) { %>
+                            <small class="<%= period_stats.receivedChange >= 0 ? 'text-success' : 'text-danger' %>">
+                                <i class="bi bi-<%= period_stats.receivedChange >= 0 ? 'arrow-up' : 'arrow-down' %>"></i>
+                                <%= Math.abs(period_stats.receivedChange).toFixed(1) %>% vs período anterior
+                            </small>
+                        <% } %>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="info-label mb-1">Ticket Médio</div>
+                        <div class="fw-bold mb-1" style="font-size: 1.6rem; color: var(--primary-color);">
+                            R$ <%= period_stats.avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                        </div>
+                        <small class="text-muted"><%= period_stats.paidCount %> parcelas pagas</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="info-label mb-1">Taxa de Inadimplência</div>
+                        <div class="fw-bold mb-1" <%- `style="font-size: 1.6rem; color: ${period_stats.defaultRate > 10 ? '#ef4444' : '#f59e0b'};"` %>>
+                            <%= period_stats.defaultRate.toFixed(1) %>%
+                        </div>
+                        <small class="text-muted"><%= period_stats.overdueCount %> parcelas atrasadas</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="info-label mb-1">Clientes Ativos</div>
+                        <div class="fw-bold mb-1" style="font-size: 1.6rem; color: var(--primary-color);">
+                            <%= stats.totalClients %>
+                        </div>
+                        <small class="text-muted"><%= stats.activeContracts %> contratos ativos</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- SECTION 3 — Charts Row                                      -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <div class="row g-4 mb-4">
+                <!-- Monthly Revenue Chart -->
+                <div class="col-md-8">
+                    <div class="premium-info-card h-100">
+                        <div class="card-header-premium">
+                            <i class="bi bi-graph-up-arrow me-2 text-primary"></i>
+                            Receita Mensal (Últimos 12 meses)
+                        </div>
+                        <div class="p-4">
+                            <div id="chartRevenueData"
+                                data-labels="<%= JSON.stringify(monthlyRevenue.map(m => m.month)) %>"
+                                data-values="<%= JSON.stringify(monthlyRevenue.map(m => m.amount)) %>"
+                                style="display:none;"></div>
+                            <canvas id="revenueChart" height="100"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Distribution + Summary -->
+                <div class="col-md-4">
+                    <div class="premium-info-card h-100">
+                        <div class="card-header-premium">
+                            <i class="bi bi-pie-chart-fill me-2 text-warning"></i>
+                            Distribuição de Status
+                        </div>
+                        <div class="p-4">
+                            <div id="chartStatusData"
+                                data-labels="<%= JSON.stringify(statusDistribution.map(s => s.label)) %>"
+                                data-values="<%= JSON.stringify(statusDistribution.map(s => s.value)) %>"
+                                data-colors="<%= JSON.stringify(statusDistribution.map(s => s.color)) %>"
+                                style="display:none;"></div>
+                            <canvas id="statusChart" height="160"></canvas>
+                            <div class="row gy-2 mt-3">
+                                <% statusDistribution.forEach(s => { %>
+                                <div class="col-6">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div <%- `style="width:10px; height:10px; border-radius:50%; background:${s.color};"` %>></div>
+                                        <small class="text-muted"><%= s.label %>: <strong><%= s.value %></strong></small>
+                                    </div>
+                                </div>
+                                <% }); %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- SECTION 4 — Projections + Payment Methods + Revenue by Type -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <div class="row g-4 mb-4">
+                <!-- Projections -->
+                <div class="col-md-4">
+                    <div class="premium-info-card h-100">
+                        <div class="card-header-premium">
+                            <i class="bi bi-calendar-check me-2 text-success"></i>
+                            Projeção de Recebimentos
+                        </div>
+                        <div class="p-4">
+                            <div class="d-flex flex-column gap-3">
+                                <div class="d-flex justify-content-between align-items-center p-3 rounded-3" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2);">
+                                    <div>
+                                        <div class="info-label">Próximos 30 dias</div>
+                                        <div class="fw-bold" style="color: #10b981; font-size: 1.1rem;">R$ <%= projections.proj30.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %></div>
+                                    </div>
+                                    <i class="bi bi-calendar-week" style="font-size: 1.5rem; color: #10b981; opacity: 0.5;"></i>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center p-3 rounded-3" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2);">
+                                    <div>
+                                        <div class="info-label">Próximos 60 dias</div>
+                                        <div class="fw-bold" style="color: #f59e0b; font-size: 1.1rem;">R$ <%= projections.proj60.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %></div>
+                                    </div>
+                                    <i class="bi bi-calendar-month" style="font-size: 1.5rem; color: #f59e0b; opacity: 0.5;"></i>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center p-3 rounded-3" style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2);">
+                                    <div>
+                                        <div class="info-label">Próximos 90 dias</div>
+                                        <div class="fw-bold" style="color: var(--primary-color); font-size: 1.1rem;">R$ <%= projections.proj90.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %></div>
+                                    </div>
+                                    <i class="bi bi-calendar3" style="font-size: 1.5rem; color: var(--primary-color); opacity: 0.5;"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Methods -->
+                <div class="col-md-4">
+                    <div class="premium-info-card h-100">
+                        <div class="card-header-premium">
+                            <i class="bi bi-credit-card me-2 text-primary"></i>
+                            Métodos de Pagamento
+                        </div>
+                        <div class="p-4">
+                            <% if (paymentMethods.length > 0) { %>
+                                <% const maxMethod = paymentMethods[0].total; %>
+                                <% paymentMethods.forEach(m => { %>
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <small class="fw-semibold"><%= m.method %></small>
+                                            <small class="text-muted">R$ <%= m.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %></small>
+                                        </div>
+                                        <div class="progress" style="height: 6px; border-radius: 4px; background: var(--bg-secondary);">
+                                            <div class="progress-bar" <%- `style="width:${maxMethod > 0 ? (m.total / maxMethod * 100).toFixed(1) : 0}%; background:var(--primary-color); border-radius:4px;"` %>></div>
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            <% } else { %>
+                                <div class="text-center text-muted py-4"><small>Sem dados no período</small></div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Revenue by Product Type -->
+                <div class="col-md-4">
+                    <div class="premium-info-card h-100">
+                        <div class="card-header-premium">
+                            <i class="bi bi-box-seam me-2 text-warning"></i>
+                            Receita por Tipo de Produto
+                        </div>
+                        <div class="p-4">
+                            <% if (revenueByType.length > 0) { %>
+                                <%
+                                const typeIcons = { MOTO: '🏍️', CARRO: '🚗', CARTA_CREDITO: '💳', ELETRONICO: '💻', IMOVEL: '🏠', SERVICO: '✈️' };
+                                const totalTypeRevenue = revenueByType.reduce((s, t) => s + t.total, 0);
+                                %>
+                                <% revenueByType.forEach(t => { %>
+                                    <div class="d-flex justify-content-between align-items-center mb-2 p-2 rounded-2" style="background: var(--bg-secondary);">
+                                        <span class="small fw-semibold"><%= typeIcons[t.type] || '📦' %> <%= t.type %></span>
+                                        <div class="text-end">
+                                            <div class="small fw-bold" style="color: var(--success-color);">R$ <%= t.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %></div>
+                                            <div class="text-muted" style="font-size: 0.7rem;"><%= totalTypeRevenue > 0 ? (t.total / totalTypeRevenue * 100).toFixed(1) : 0 %>%</div>
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            <% } else { %>
+                                <div class="text-center text-muted py-4"><small>Sem dados no período</small></div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- SECTION 5 — Transaction Feed                                -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <div class="premium-info-card mb-4">
+                <div class="card-header-premium d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-arrow-down-circle-fill me-2 text-success"></i>
+                        Entradas — Pagamentos Recebidos no Período
+                        <span class="badge ms-2" style="background: rgba(16,185,129,0.15); color: #10b981; font-size: 0.75rem;"><%= transactionFeed.length %></span>
+                    </h5>
+                </div>
+                <% if (transactionFeed.length > 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-custom align-middle w-100" id="transactionTable">
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>Produto</th>
+                                    <th>Parcela</th>
+                                    <th>Valor</th>
+                                    <th>Método</th>
+                                    <th>Data</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% transactionFeed.forEach(t => { %>
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div style="width:34px; height:34px; border-radius:10px; background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); color:white; display:flex; align-items:center; justify-content:center; font-weight:700;">
+                                                    <%= t.clientName.charAt(0).toUpperCase() %>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold" style="font-size:0.9rem;"><%= t.clientName %></div>
+                                                    <div class="text-muted small"><%= t.clientEmail %></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td><span class="small"><%= t.productName %></span></td>
+                                        <td><span class="badge" style="background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-color);">#<%= t.installment %></span></td>
+                                        <td><strong style="color: var(--success-color);">R$ <%= t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %></strong></td>
+                                        <td><span class="badge-premium" style="background: rgba(99,102,241,0.1); color: var(--primary-color); border: 1px solid rgba(99,102,241,0.2); font-size: 0.72rem;"><%= t.paymentMethod %></span></td>
+                                        <td><span class="text-muted small"><%= t.paymentDate ? new Date(t.paymentDate).toLocaleDateString('pt-BR') : '-' %></span></td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox text-muted" style="font-size: 2.5rem; opacity:0.3;"></i>
+                        <p class="text-muted mt-3 mb-0">Nenhum pagamento recebido no período selecionado.</p>
+                    </div>
+                <% } %>
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- SECTION 6 — Refund Feed                                     -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <% if (refundFeed.length > 0) { %>
+            <div class="premium-info-card mb-4">
+                <div class="card-header-premium d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-arrow-up-circle-fill me-2 text-danger"></i>
+                        Saídas — Reembolsos
+                        <span class="badge ms-2" style="background: rgba(239,68,68,0.15); color: #ef4444; font-size: 0.75rem;"><%= refundFeed.length %></span>
+                    </h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle w-100">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Produto</th>
+                                <th>Valor</th>
+                                <th>Data</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% refundFeed.forEach(r => { %>
+                                <tr>
+                                    <td class="fw-semibold"><%= r.clientName %></td>
+                                    <td class="small text-muted"><%= r.productName %></td>
+                                    <td><strong style="color: #ef4444;">- R$ <%= r.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %></strong></td>
+                                    <td class="text-muted small"><%= r.dueDate ? new Date(r.dueDate).toLocaleDateString('pt-BR') : '-' %></td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <% } %>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- SECTION 7 — Rankings                                        -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <div class="row g-4 mb-4">
+                <!-- Top Clients -->
+                <div class="col-md-4">
+                    <div class="premium-info-card h-100">
+                        <div class="card-header-premium">
+                            <i class="bi bi-trophy-fill me-2 text-warning"></i>
+                            Top 10 Clientes — Período
+                        </div>
+                        <div class="p-3">
+                            <% if (topClients.length > 0) { %>
+                                <% topClients.forEach((c, idx) => { %>
+                                    <div class="d-flex align-items-center gap-2 mb-2 p-2 rounded-2" style="background: var(--bg-secondary);">
+                                        <div <%- `style="width:24px; height:24px; border-radius:50%; background:${idx === 0 ? '#f59e0b' : idx === 1 ? '#94a3b8' : idx === 2 ? '#cd7c4a' : 'var(--bg-primary)'}; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; color:white; flex-shrink:0;"` %>>
+                                            <%= idx + 1 %>
+                                        </div>
+                                        <div class="flex-1 overflow-hidden">
+                                            <div class="fw-semibold text-truncate" style="font-size:0.85rem;"><%= c.name %></div>
+                                            <div class="text-muted" style="font-size:0.72rem;"><%= c.count %> parcela(s)</div>
+                                        </div>
+                                        <div class="fw-bold text-nowrap" style="color: var(--success-color); font-size:0.85rem;">
+                                            R$ <%= c.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            <% } else { %>
+                                <div class="text-center text-muted py-4"><small>Sem dados no período</small></div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Overdue Clients -->
+                <div class="col-md-4">
+                    <div class="premium-info-card h-100">
+                        <div class="card-header-premium">
+                            <i class="bi bi-person-x-fill me-2 text-danger"></i>
+                            Inadimplentes (+30 dias)
+                        </div>
+                        <div class="p-3">
+                            <% if (overdueClients.length > 0) { %>
+                                <% overdueClients.forEach(c => { %>
+                                    <div class="d-flex align-items-center gap-2 mb-2 p-2 rounded-2" style="background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.1);">
+                                        <div style="width:34px; height:34px; border-radius:10px; background: rgba(239,68,68,0.15); color:#ef4444; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.9rem; flex-shrink:0;">
+                                            <%= c.name.charAt(0).toUpperCase() %>
+                                        </div>
+                                        <div class="flex-1 overflow-hidden">
+                                            <div class="fw-semibold text-truncate" style="font-size:0.85rem;"><%= c.name %></div>
+                                            <div class="text-muted" style="font-size:0.72rem;"><%= c.count %> parcela(s) em atraso</div>
+                                        </div>
+                                        <div class="fw-bold text-nowrap" style="color: #ef4444; font-size:0.85rem;">
+                                            R$ <%= c.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            <% } else { %>
+                                <div class="text-center py-4">
+                                    <i class="bi bi-check-circle-fill text-success" style="font-size:2rem; opacity:0.5;"></i>
+                                    <p class="text-muted mt-2 mb-0 small">Nenhum cliente com atraso superior a 30 dias.</p>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Products + New Clients chart -->
+                <div class="col-md-4">
+                    <div class="premium-info-card mb-4">
+                        <div class="card-header-premium">
+                            <i class="bi bi-box-seam-fill me-2 text-primary"></i>
+                            Top Produtos — Receita
+                        </div>
+                        <div class="p-3">
+                            <% if (topProducts.length > 0) { %>
+                                <% const maxProd = topProducts[0].revenue; %>
+                                <% topProducts.forEach(p => { %>
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <small class="fw-semibold text-truncate" style="max-width:60%;"><%= p.name %></small>
+                                            <small class="text-muted">R$ <%= p.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %></small>
+                                        </div>
+                                        <div class="progress" style="height:5px; border-radius:4px; background:var(--bg-secondary);">
+                                            <div class="progress-bar" <%- `style="width:${maxProd > 0 ? (p.revenue / maxProd * 100).toFixed(1) : 0}%; background:var(--primary-color); border-radius:4px;"` %>></div>
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            <% } else { %>
+                                <div class="text-center text-muted py-3"><small>Sem dados no período</small></div>
+                            <% } %>
+                        </div>
+                    </div>
+
+                    <div class="premium-info-card">
+                        <div class="card-header-premium">
+                            <i class="bi bi-person-plus-fill me-2 text-success"></i>
+                            Novos Clientes (6 meses)
+                        </div>
+                        <div class="p-3">
+                            <div id="chartNewClientsData"
+                                data-labels="<%= JSON.stringify(newClientsPerMonth.map(m => m.month)) %>"
+                                data-values="<%= JSON.stringify(newClientsPerMonth.map(m => m.count)) %>"
+                                style="display:none;"></div>
+                            <canvas id="newClientsChart" height="120"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- SECTION 8 — System Summary                                  -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <div class="premium-info-card mb-5">
+                <div class="card-header-premium">
+                    <i class="bi bi-pie-chart-fill me-2 text-warning"></i>
+                    Resumo Geral do Sistema
+                </div>
+                <div class="p-4">
+                    <div class="row gy-3">
+                        <div class="col-6 col-md-2">
+                            <div class="info-label">Contratos Ativos</div>
+                            <p class="h4 mb-0 fw-bold" style="color: var(--success-color);"><%= stats.activeContracts %> / <%= stats.totalContracts %></p>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <div class="info-label">Contemplados</div>
+                            <p class="h4 mb-0 fw-bold" style="color: var(--primary-color);"><%= stats.contemplatedContracts %></p>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <div class="info-label">Parcelas Pagas</div>
+                            <p class="h4 mb-0 fw-bold" style="color: var(--success-color);"><%= stats.paidCount %></p>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <div class="info-label">Parcelas Atrasadas</div>
+                            <p class="h4 mb-0 fw-bold" style="color: var(--danger-color);"><%= stats.overdueCount %></p>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <div class="info-label">Produtos Listados</div>
+                            <p class="h4 mb-0 fw-bold"><%= stats.totalProducts %></p>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <div class="info-label">Lances Pendentes</div>
+                            <p class="h4 mb-0 fw-bold" style="color: var(--warning-color);"><%= stats.pendingBids %> / <%= stats.totalBids %></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- .main-content -->
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+                || document.body.classList.contains('dark-mode');
+            const gridColor  = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)';
+            const textColor  = isDark ? '#94a3b8' : '#64748b';
+
+            // ── Revenue chart ────────────────────────────────────────────
+            const revEl = document.getElementById('chartRevenueData');
+            if (revEl) {
+                new Chart(document.getElementById('revenueChart'), {
+                    type: 'bar',
+                    data: {
+                        labels:   JSON.parse(revEl.dataset.labels),
+                        datasets: [{
+                            label: 'Receita (R$)',
+                            data:  JSON.parse(revEl.dataset.values),
+                            backgroundColor: 'rgba(99,102,241,0.7)',
+                            borderColor:     'rgba(99,102,241,1)',
+                            borderWidth: 1,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { ticks: { color: textColor }, grid: { color: gridColor } },
+                            y: { ticks: { color: textColor, callback: v => 'R$' + v.toLocaleString('pt-BR') }, grid: { color: gridColor } }
+                        }
+                    }
+                });
+            }
+
+            // ── Status pie chart ─────────────────────────────────────────
+            const stEl = document.getElementById('chartStatusData');
+            if (stEl) {
+                new Chart(document.getElementById('statusChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels:   JSON.parse(stEl.dataset.labels),
+                        datasets: [{
+                            data:            JSON.parse(stEl.dataset.values),
+                            backgroundColor: JSON.parse(stEl.dataset.colors),
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        cutout: '65%',
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+
+            // ── New clients bar chart ────────────────────────────────────
+            const ncEl = document.getElementById('chartNewClientsData');
+            if (ncEl) {
+                new Chart(document.getElementById('newClientsChart'), {
+                    type: 'bar',
+                    data: {
+                        labels:   JSON.parse(ncEl.dataset.labels),
+                        datasets: [{
+                            label: 'Novos Clientes',
+                            data:  JSON.parse(ncEl.dataset.values),
+                            backgroundColor: 'rgba(16,185,129,0.7)',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { ticks: { color: textColor, font: { size: 10 } }, grid: { display: false } },
+                            y: { ticks: { color: textColor, stepSize: 1 }, grid: { color: gridColor } }
+                        }
+                    }
+                });
+            }
+        });
+
+        // ── Export ───────────────────────────────────────────────────────
+        function exportReport() {
+            const table = document.getElementById('transactionTable');
+            if (!table) return alert('Sem transações para exportar');
+            let csv = '';
+            table.querySelectorAll('tr').forEach(row => {
+                const cols = [...row.querySelectorAll('th,td')].map(c => '"' + c.innerText.replace(/"/g,'""').trim() + '"');
+                csv += cols.join(',') + '\n';
+            });
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'relatorio_' + new Date().toISOString().split('T')[0] + '.csv';
+            a.click();
+        }
+        </script>
+
+<%- include('../../partials/footer') %>

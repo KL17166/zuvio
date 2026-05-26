@@ -1,0 +1,750 @@
+<%- include('../../partials/header') %>
+
+    <%- include('../../partials/sidebar', { path: '/clients' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title">Perfil do Cliente</h1>
+                    <p class="text-muted mb-0">
+                        <%= client.name %>
+                    </p>
+                </div>
+                <div class="top-bar-actions">
+                    <a href="/admin/contracts/new?clientId=<%= client.id %>" class="btn btn-success">
+                        <i class="bi bi-plus-lg me-2"></i>Novo Contrato
+                    </a>
+                    <a href="/admin/clients/<%= client.id %>/edit" class="btn btn-outline-primary">
+                        <i class="bi bi-pencil me-2"></i>Editar
+                    </a>
+                    <a href="/admin/clients" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-2"></i>Voltar
+                    </a>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="bi bi-moon-stars" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            <% if (typeof success_msg !=='undefined' && success_msg && success_msg.length> 0) { %>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <%= success_msg %>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <% } %>
+
+                    <% if (typeof error_msg !=='undefined' && error_msg && error_msg.length> 0) { %>
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <%= error_msg %>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        <% } %>
+
+                            <!-- Stats Cards -->
+                            <% const activeSubscriptions=client.subscriptions.filter(s=> s.status === 'ACTIVE');
+                                const contemplatedSubscriptions = client.subscriptions.filter(s => s.contemplated);
+                                const totalContracts = client.subscriptions.length;
+                                %>
+
+                                <div class="row g-4 mb-5">
+                                    <div class="col-md-3">
+                                        <div class="premium-stat-card p-4">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <div class="info-label">Contratos Ativos</div>
+                                                    <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: #10b981;"><%= activeSubscriptions.length %></div>
+                                                    <small class="text-muted mt-2 d-block">Em andamento</small>
+                                                </div>
+                                                <div class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                                                    <i class="bi bi-file-check-fill"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <div class="premium-stat-card p-4">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <div class="info-label">Total de Contratos</div>
+                                                    <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: var(--primary-color);"><%= totalContracts %></div>
+                                                    <small class="text-muted mt-2 d-block">Histórico completo</small>
+                                                </div>
+                                                <div class="stat-icon-wrapper" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">
+                                                    <i class="bi bi-files"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <div class="premium-stat-card p-4">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <div class="info-label">Contemplados</div>
+                                                    <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: #8b5cf6;"><%= contemplatedSubscriptions.length %></div>
+                                                    <small class="text-muted mt-2 d-block">Bens faturados</small>
+                                                </div>
+                                                <div class="stat-icon-wrapper" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;">
+                                                    <i class="bi bi-trophy-fill"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <div class="premium-stat-card p-4">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <div class="info-label">Lances</div>
+                                                    <% const totalBids = client.subscriptions.reduce((sum, sub) => sum + sub.bids.length, 0); %>
+                                                    <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: #3b82f6;"><%= totalBids %></div>
+                                                    <small class="text-muted mt-2 d-block">Ativos ou passados</small>
+                                                </div>
+                                                <div class="stat-icon-wrapper" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+                                                    <i class="bi bi-lightning-fill"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row g-4">
+                                    <!-- Left Column: Client Info -->
+                                    <div class="col-md-4">
+                                        <div class="card shadow-sm border-0 mb-4">
+                                            <div class="card-body p-4">
+                                                <div class="text-center mb-4">
+                                                    <div class="user-avatar mx-auto mb-3 text-white fw-bold d-flex align-items-center justify-content-center"
+                                                        style="width: 100px; height: 100px; font-size: 3.5rem; border-radius: 25px; background: linear-gradient(45deg, var(--primary-color), #2b5c8f);">
+                                                        <%= client.name.charAt(0).toUpperCase() %>
+                                                    </div>
+                                                    <h4 class="mb-1 text-dark fw-bold">
+                                                        <%= client.name %>
+                                                    </h4>
+                                                    <p class="text-muted mb-0">
+                                                        <%= client.email %>
+                                                    </p>
+                                                </div>
+
+                                                <hr class="text-muted opacity-25">
+
+                                                <h6 class="mb-3 fw-bold"><i class="bi bi-person-vcard text-primary me-2"></i>Informações Pessoais
+                                                </h6>
+
+                                                <div class="mb-3">
+                                                    <label class="text-muted small d-block mb-1">CPF</label>
+                                                    <span class="fw-medium text-dark">
+                                                        <%= client.cpf ?
+                                                            client.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4'
+                                                            ) : '-' %>
+                                                    </span>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label class="text-muted small d-block mb-1">Telefone</label>
+                                                    <% if (client.phone) { %>
+                                                        <span class="fw-medium text-dark"><i class="bi bi-phone text-success me-1"></i>
+                                                            <%= client.phone %>
+                                                        </span>
+                                                        <% } else { %>
+                                                            <span class="text-muted">-</span>
+                                                            <% } %>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label class="text-muted small d-block mb-1">Data de Nascimento</label>
+                                                    <span class="fw-medium text-dark">
+                                                        <%= client.birthDate ? new
+                                                            Date(client.birthDate).toLocaleDateString('pt-BR') : '-' %>
+                                                    </span>
+                                                </div>
+
+                                                <!-- Endereço Estruturado JSON -->
+                                                <% 
+                                                    let parsedAddress = null;
+                                                    try {
+                                                        if (client.address) {
+                                                            if (client.address.startsWith('{')) {
+                                                                parsedAddress = JSON.parse(client.address);
+                                                            } else {
+                                                                parsedAddress = { street: client.address };
+                                                            }
+                                                        }
+                                                    } catch (e) {
+                                                        parsedAddress = { street: client.address };
+                                                    }
+                                                %>
+                                                <div class="mb-3">
+                                                    <label class="text-muted small d-block mb-1">Endereço</label>
+                                                    <% if (parsedAddress && (parsedAddress.street || parsedAddress.cep)) { %>
+                                                        <p class="mb-0 fw-medium text-dark" style="font-size: 0.9rem;">
+                                                            <%= parsedAddress.street || '' %><% if(parsedAddress.number){ %>, <%= parsedAddress.number %><% } %>
+                                                            <% if(parsedAddress.complement){ %> - <%= parsedAddress.complement %><% } %><br>
+                                                            <% if(parsedAddress.neighborhood){ %><%= parsedAddress.neighborhood %><% } %>
+                                                            <% if(parsedAddress.city && parsedAddress.state){ %><br><%= parsedAddress.city %> - <%= parsedAddress.state %><% } %><br>
+                                                            <% if(parsedAddress.cep){ %><span class="text-muted">CEP: <%= parsedAddress.cep %></span><% } %>
+                                                        </p>
+                                                    <% } else { %>
+                                                        <span class="text-muted">-</span>
+                                                    <% } %>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label class="text-muted small d-block mb-1">Cliente desde</label>
+                                                    <span class="fw-medium text-dark">
+                                                        <%= new Date(client.createdAt).toLocaleDateString('pt-BR') %>
+                                                    </span>
+                                                </div>
+
+                                            <hr class="text-muted opacity-25">
+
+                                            <h6 class="mb-3 fw-bold"><i class="bi bi-file-earmark-image text-primary me-2"></i>Documentos KYC
+                                            </h6>
+                                            <div class="row g-2 mb-3">
+                                                <div class="col-4">
+                                                    <div class="border rounded p-1 text-center bg-light"
+                                                        style="height: 80px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                                        <% if (client.documentFrontUrl) { %>
+                                                            <a href="<%= client.documentFrontUrl %>" target="_blank">
+                                                                <img src="<%= client.documentFrontUrl %>"
+                                                                    class="img-fluid" alt="Frente">
+                                                            </a>
+                                                            <% } else { %>
+                                                                <small class="text-muted"
+                                                                    style="font-size: 0.7rem;">Frente<br>Pendente</small>
+                                                                <% } %>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div class="border rounded p-1 text-center bg-light"
+                                                        style="height: 80px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                                        <% if (client.documentBackUrl) { %>
+                                                            <a href="<%= client.documentBackUrl %>" target="_blank">
+                                                                <img src="<%= client.documentBackUrl %>"
+                                                                    class="img-fluid" alt="Verso">
+                                                            </a>
+                                                            <% } else { %>
+                                                                <small class="text-muted"
+                                                                    style="font-size: 0.7rem;">Verso<br>Pendente</small>
+                                                                <% } %>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div class="border rounded p-1 text-center bg-light"
+                                                        style="height: 80px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                                        <% if (client.selfieUrl) { %>
+                                                            <a href="<%= client.selfieUrl %>" target="_blank">
+                                                                <img src="<%= client.selfieUrl %>" class="img-fluid"
+                                                                    alt="Selfie">
+                                                            </a>
+                                                            <% } else { %>
+                                                                <small class="text-muted"
+                                                                    style="font-size: 0.7rem;">Selfie<br>Pendente</small>
+                                                                <% } %>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <hr class="text-muted opacity-25">
+
+                                            <h6 class="mb-3 fw-bold"><i class="bi bi-lightning text-warning me-2"></i>Ações Rápidas</h6>
+                                            <div class="d-grid gap-2">
+                                                <a href="/admin/contracts/new?clientId=<%= client.id %>"
+                                                    class="btn btn-primary shadow-sm">
+                                                    <i class="bi bi-plus-lg me-2"></i>Novo Contrato
+                                                </a>
+                                                <a href="/admin/clients/<%= client.id %>/edit"
+                                                    class="btn btn-outline-secondary">
+                                                    <i class="bi bi-pencil me-2"></i>Editar Dados
+                                                </a>
+                                                <% if (['MASTER', 'MANAGER'].includes(user.role)) { %>
+                                                <button type="button" class="btn btn-outline-warning"
+                                                    onclick="new bootstrap.Modal(document.getElementById('resetPasswordModal')).show()">
+                                                    <i class="bi bi-key me-2"></i>Resetar Senha
+                                                </button>
+                                                <% if (activeSubscriptions.length===0) { %>
+                                                    <button type="button" class="btn btn-outline-danger"
+                                                        onclick="new bootstrap.Modal(document.getElementById('deleteModal')).show()">
+                                                        <i class="bi bi-trash me-2"></i>Excluir Cliente
+                                                    </button>
+                                                <% } %>
+                                                <% } %>
+                                            </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Right Column: Contracts & Activity -->
+                                    <div class="col-md-8">
+                                        <!-- Active Contracts -->
+                                        <div class="card shadow-sm border-0 mb-4">
+                                            <div class="card-header bg-white border-0 pt-4 pb-0">
+                                                <h5 class="mb-3">
+                                                    <i class="bi bi-file-text text-primary me-2"></i>
+                                                    Contratos Ativos
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill ms-2">
+                                                        <%= activeSubscriptions.length %>
+                                                    </span>
+                                                </h5>
+                                            </div>
+                                            <div class="card-body p-0">
+
+                                            <% if (activeSubscriptions.length> 0) { %>
+                                                <div class="list-group list-group-flush">
+                                                    <% activeSubscriptions.forEach(sub=> { %>
+                                                        <div class="list-group-item px-0">
+                                                            <div class="row align-items-center">
+                                                                <div class="col-md-4">
+                                                                    <strong class="d-block">
+                                                                        <%= sub.plan.product.name %>
+                                                                    </strong>
+                                                                    <small class="text-muted">
+                                                                        <span class="badge bg-secondary">G:<%=
+                                                                                sub.groupNumber || '-' %> / C:<%=
+                                                                                    sub.quotaNumber || '-' %></span>
+                                                                    </small>
+                                                                </div>
+                                                                <div class="col-md-3">
+                                                                    <small class="text-muted d-block">Crédito</small>
+                                                                    <strong style="color: var(--success-color);">
+                                                                        R$ <%=
+                                                                            Number(sub.creditValue).toLocaleString('pt-BR',
+                                                                            { minimumFractionDigits: 2 }) %>
+                                                                    </strong>
+                                                                </div>
+                                                                <div class="col-md-3">
+                                                                    <small class="text-muted d-block">Progresso</small>
+                                                                    <% const progress=(sub.paidInstallments /
+                                                                        sub.totalInstallments) * 100; %>
+                                                                        <div class="progress" style="height: 8px;">
+                                                                            <div class="progress-bar bg-success" style="--p: <%= Math.round(progress) %>%; width: var(--p);">
+                                                                            </div>
+                                                                        </div>
+                                                                        <small class="text-muted">
+                                                                            <%= sub.paidInstallments %>/<%=
+                                                                                    sub.totalInstallments %>
+                                                                        </small>
+
+                                                                        <% if (sub.termsAcceptedAt) { %>
+                                                                            <div class="mt-1"
+                                                                                style="font-size: 0.7rem; color: var(--success-color);"
+                                                                                title="IP: <%= sub.termsIpAddress %>">
+                                                                                <i
+                                                                                    class="bi bi-pen-fill me-1"></i>Assinado
+                                                                                em <%= new
+                                                                                    Date(sub.termsAcceptedAt).toLocaleDateString('pt-BR')
+                                                                                    %>
+                                                                            </div>
+                                                                            <% } else { %>
+                                                                                <div class="mt-1 text-warning"
+                                                                                    style="font-size: 0.7rem;">
+                                                                                    <i
+                                                                                        class="bi bi-exclamation-circle me-1"></i>Assinatura
+                                                                                    Pendente
+                                                                                </div>
+                                                                                <% } %>
+                                                                </div>
+                                                                <div class="col-md-2 text-end">
+                                                                    <a href="/admin/contracts/<%= sub.id %>"
+                                                                        class="btn btn-sm btn-outline-primary">
+                                                                        <i class="bi bi-eye"></i> Ver
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <% }); %>
+                                                </div>
+                                                <% } else { %>
+                                                    <div class="text-center py-4">
+                                                        <i class="bi bi-file-text"
+                                                            style="font-size: 3rem; opacity: 0.3;"></i>
+                                                        <p class="text-muted mt-2 mb-3">Nenhum contrato ativo</p>
+                                                        <a href="/admin/contracts/new?clientId=<%= client.id %>"
+                                                            class="btn btn-success">
+                                                            <i class="bi bi-plus-lg me-2"></i>Criar Primeiro Contrato
+                                                        </a>
+                                                    </div>
+                                                    <% } %>
+                                            </div>
+                                        </div>
+
+                                        <!-- All Contracts History -->
+                                        <% if (client.subscriptions.length > activeSubscriptions.length) { %>
+                                            <div class="card shadow-sm border-0 mb-4">
+                                                <div class="card-header bg-white border-0 pt-4 pb-0">
+                                                    <h5 class="mb-3">
+                                                        <i class="bi bi-clock-history text-primary me-2"></i>
+                                                        Histórico de Contratos
+                                                    </h5>
+                                                </div>
+                                                <div class="card-body p-0">
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover align-middle mb-0">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Produto</th>
+                                                                <th>Status</th>
+                                                                <th>Data</th>
+                                                                <th>Ação</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <% client.subscriptions.filter(s=> s.status !==
+                                                                'ACTIVE').forEach(sub => { %>
+                                                                <tr>
+                                                                    <td>
+                                                                        <%= sub.plan.product.name %>
+                                                                    </td>
+                                                                    <td>
+                                                                        <% if (sub.status==='COMPLETED' ) { %>
+                                                                            <span
+                                                                                class="badge bg-success">Completo</span>
+                                                                            <% } else if (sub.status==='CONTEMPLATED' )
+                                                                                { %>
+                                                                                <span
+                                                                                    class="badge bg-primary">Contemplado</span>
+                                                                                <% } else if (sub.status==='CANCELLED' )
+                                                                                    { %>
+                                                                                    <span
+                                                                                        class="badge bg-danger">Cancelado</span>
+                                                                                    <% } else { %>
+                                                                                        <span
+                                                                                            class="badge bg-secondary">
+                                                                                            <%= sub.status %>
+                                                                                        </span>
+                                                                                        <% } %>
+                                                                    </td>
+                                                                    <td><small class="text-muted">
+                                                                            <%= new
+                                                                                Date(sub.createdAt).toLocaleDateString('pt-BR')
+                                                                                %>
+                                                                        </small></td>
+                                                                    <td>
+                                                                        <a href="/admin/contracts/<%= sub.id %>"
+                                                                            class="btn btn-sm btn-outline-primary">
+                                                                            <i class="bi bi-eye"></i>
+                                                                        </a>
+                                                                    </td>
+                                                                </tr>
+                                                                <% }); %>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                </div>
+                                            </div>
+                                            <% } %>
+
+                                                <!-- Installments / Parcelas -->
+                                                <% if (allInstallments && allInstallments.length> 0) { %>
+                                                    <div class="card shadow-sm border-0 mb-4">
+                                                        <div class="card-header bg-white border-0 pt-4 pb-0">
+                                                            <h5 class="mb-3 d-flex align-items-center">
+                                                                <i class="bi bi-cash-coin text-primary me-2"></i>
+                                                                Parcelas
+                                                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill ms-2">
+                                                                    <%= allInstallments.length %>
+                                                                </span>
+                                                                <% if (stats.overdueInstallments> 0) { %>
+                                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill ms-2">
+                                                                        <%= stats.overdueInstallments %> atrasada<%=
+                                                                                stats.overdueInstallments> 1 ? 's' : '' %>
+                                                                    </span>
+                                                                    <% } %>
+                                                            </h5>
+                                                        </div>
+                                                        <div class="card-body p-0 mt-2">
+                                                        <div class="table-responsive">
+                                                            <table class="table table-hover align-middle mb-0">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>#</th>
+                                                                        <th>Produto</th>
+                                                                        <th>Valor</th>
+                                                                        <th>Vencimento</th>
+                                                                        <th>Status</th>
+                                                                        <th class="text-end">Ação</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <% allInstallments.forEach(inst=> { %>
+                                                                        <tr>
+                                                                            <td>
+                                                                                <% if (inst.number===1) { %>
+                                                                                    <span
+                                                                                        class="badge bg-info">Adesão</span>
+                                                                                    <% } else { %>
+                                                                                        <strong>
+                                                                                            <%= inst.number %>
+                                                                                        </strong>
+                                                                                        <% } %>
+                                                                            </td>
+                                                                            <td><small>
+                                                                                    <%= inst.productName %>
+                                                                                </small></td>
+                                                                            <td>
+                                                                                <strong
+                                                                                    style="color: var(--success-color);">
+                                                                                    R$ <%=
+                                                                                        Number(inst.amount).toLocaleString('pt-BR',
+                                                                                        { minimumFractionDigits: 2 }) %>
+                                                                                </strong>
+                                                                            </td>
+                                                                            <td>
+                                                                                <small>
+                                                                                    <%= new
+                                                                                        Date(inst.dueDate).toLocaleDateString('pt-BR')
+                                                                                        %>
+                                                                                </small>
+                                                                            </td>
+                                                                            <td>
+                                                                                <% if (inst.status==='PAID' ) { %>
+                                                                                    <span class="badge bg-success"><i
+                                                                                            class="bi bi-check-lg me-1"></i>Pago</span>
+                                                                                    <% } else if
+                                                                                        (inst.status==='OVERDUE' ) { %>
+                                                                                        <span class="badge bg-danger"><i
+                                                                                                class="bi bi-exclamation-triangle me-1"></i>Atrasado</span>
+                                                                                        <% } else if
+                                                                                            (inst.status==='PENDING' ) {
+                                                                                            %>
+                                                                                            <span
+                                                                                                class="badge bg-warning text-dark"><i
+                                                                                                    class="bi bi-clock me-1"></i>Pendente</span>
+                                                                                            <% } else { %>
+                                                                                                <span
+                                                                                                    class="badge bg-secondary">
+                                                                                                    <%= inst.status %>
+                                                                                                </span>
+                                                                                                <% } %>
+                                                                            </td>
+                                                                            <td class="text-end">
+                                                                                <% if (inst.status !=='PAID' ) { %>
+                                                                                    <% if (['MASTER', 'MANAGER'].includes(user.role)) { %>
+                                                                                    <form
+                                                                                        action="/admin/clients/<%= client.id %>/installments/<%= inst.id %>/mark-paid"
+                                                                                        method="POST"
+                                                                                        style="display: inline;"
+                                                                                        onsubmit="return confirm(`<%= inst.number === 1 ? 'Marcar adesão como paga?' : 'Marcar parcela #' + inst.number + ' como paga?' %>`)">
+                                                                                        <input type="hidden"
+                                                                                            name="_csrf"
+                                                                                            value="<%= csrfToken %>">
+                                                                                        <button type="submit"
+                                                                                            class="btn btn-sm btn-outline-success"
+                                                                                            title="Marcar como paga">
+                                                                                            <i
+                                                                                                class="bi bi-check-lg"></i>
+                                                                                        </button>
+                                                                                    </form>
+                                                                                    <% } %>
+                                                                                    <% } else { %>
+                                                                                        <small class="text-muted">
+                                                                                            <% if (inst.paidAt) { %>
+                                                                                                <%= new
+                                                                                                    Date(inst.paidAt).toLocaleDateString('pt-BR')
+                                                                                                    %>
+                                                                                                    <% } %>
+                                                                                        </small>
+                                                                                        <% } %>
+                                                                            </td>
+                                                                        </tr>
+                                                                        <% }); %>
+                                                                </tbody>
+                                                            </table>
+                                                    </div>
+
+                                                        <div class="card-footer bg-light border-0 py-3">
+                                                            <div class="d-flex gap-4">
+                                                                <small class="text-dark fw-medium">
+                                                                    <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                                                    <%= stats.paidInstallments %> paga<%= stats.paidInstallments !== 1 ? 's' : '' %>
+                                                                </small>
+                                                                <small class="text-dark fw-medium">
+                                                                    <i class="bi bi-clock-fill text-warning me-1"></i>
+                                                                    <%= stats.pendingInstallments %> pendente<%= stats.pendingInstallments !== 1 ? 's' : '' %>
+                                                                </small>
+                                                                <% if (stats.overdueInstallments > 0) { %>
+                                                                    <small class="text-danger fw-bold">
+                                                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                                                        <%= stats.overdueInstallments %> atrasada<%= stats.overdueInstallments !== 1 ? 's' : '' %>
+                                                                    </small>
+                                                                <% } %>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <% } %>
+                                                        <% 
+                                                        const allBids = client.subscriptions.flatMap(sub =>
+                                                            sub.bids.map(bid => ({
+                                                                ...bid,
+                                                                productName: sub.plan.product.name
+                                                            }))
+                                                        );
+                                                    %>
+
+                                                    <% if (allBids.length > 0) { %>
+                                                                <div class="card shadow-sm border-0 mb-4">
+                                                                    <div class="card-header bg-white border-0 pt-4 pb-0">
+                                                                        <h5 class="mb-3">
+                                                                            <i class="bi bi-lightning text-primary me-2"></i>
+                                                                            Histórico de Lances
+                                                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill ms-2">
+                                                                                <%= allBids.length %>
+                                                                            </span>
+                                                                        </h5>
+                                                                    </div>
+
+                                                                    <div class="card-body p-0 mt-2">
+                                                                    <div class="table-responsive">
+                                                                        <table class="table table-hover align-middle mb-0">
+                                                                            <thead>
+                                                                                <tr>
+                                                                                    <th>Produto</th>
+                                                                                    <th>Percentual</th>
+                                                                                    <th>Valor</th>
+                                                                                    <th>Status</th>
+                                                                                    <th>Data</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                <% allBids.forEach(bid=> { %>
+                                                                                    <tr>
+                                                                                        <td><small>
+                                                                                                <%= bid.productName
+                                                                                                    %>
+                                                                                            </small></td>
+                                                                                        <td><strong>
+                                                                                                <%= Number(bid.percentage).toFixed(1)
+                                                                                                    %>%
+                                                                                            </strong></td>
+                                                                                        <td>
+                                                                                            <strong
+                                                                                                style="color: var(--success-color);">
+                                                                                                R$ <%=
+                                                                                                    Number(bid.amount).toLocaleString('pt-BR',
+                                                                                                    {
+                                                                                                    minimumFractionDigits:
+                                                                                                    2 }) %>
+                                                                                            </strong>
+                                                                                        </td>
+                                                                                        <td>
+                                                                                            <% if
+                                                                                                (bid.status==='CONTEMPLATED'
+                                                                                                ) { %>
+                                                                                                <span
+                                                                                                    class="badge bg-success"><i
+                                                                                                        class="bi bi-trophy me-1"></i>Contemplado</span>
+                                                                                                <% } else if
+                                                                                                    (bid.status==='APPROVED'
+                                                                                                    ) { %>
+                                                                                                    <span
+                                                                                                        class="badge bg-primary">Aprovado</span>
+                                                                                                    <% } else if
+                                                                                                        (bid.status==='REJECTED'
+                                                                                                        ) { %>
+                                                                                                        <span
+                                                                                                            class="badge bg-danger">Rejeitado</span>
+                                                                                                        <% } else { %>
+                                                                                                            <span
+                                                                                                                class="badge bg-warning text-dark">Pendente</span>
+                                                                                                            <% } %>
+                                                                                        </td>
+                                                                                        <td>
+                                                                                            <small class="text-muted">
+                                                                                                <%= new
+                                                                                                    Date(bid.createdAt).toLocaleDateString('pt-BR')
+                                                                                                    %>
+                                                                                            </small>
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                    <% }); %>
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                    </div>
+                                                                </div>
+                                                                <% } %>
+                                    </div>
+                                </div>
+        </div>
+
+        <!-- Modal Reset Password -->
+        <div class="modal fade" id="resetPasswordModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning text-dark">
+                        <h5 class="modal-title"><i class="bi bi-key me-2"></i>Resetar Senha</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Tem certeza que deseja resetar a senha de <strong>
+                                <%= client.name %>
+                            </strong>?</p>
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Uma nova senha aleatória será gerada e exibida na tela. Anote-a antes de fechar!
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <form action="/admin/clients/<%= client.id %>/reset-password" method="POST"
+                            style="display: inline;">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <button type="submit" class="btn btn-warning">Sim, resetar</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Delete -->
+        <div class="modal fade" id="deleteModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title"><i class="bi bi-trash me-2"></i>Excluir Cliente</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Tem certeza que deseja excluir o cliente <strong>
+                                <%= client.name %>
+                            </strong>?</p>
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Esta ação não pode ser desfeita!
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <form action="/admin/clients/<%= client.id %>/delete" method="POST" style="display: inline;">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <button type="submit" class="btn btn-danger">Sim, excluir</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <script>
+        function deleteClient() {
+            if(confirm('Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita e só é possível se não houver contratos ativos.')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/admin/users/<%= client.id %>/delete';
+                
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = '_csrf';
+                csrfInput.value = '<%= csrfToken %>';
+                
+                form.appendChild(csrfInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    </script>
+<%- include('../../partials/footer') %>

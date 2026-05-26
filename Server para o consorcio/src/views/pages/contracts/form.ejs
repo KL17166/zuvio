@@ -1,0 +1,256 @@
+<%- include('../../partials/header') %>
+
+    <%- include('../../partials/sidebar', { path: '/contracts' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title">Novo Contrato de Consórcio</h1>
+                    <p class="text-muted mb-0">Preencha os dados para criar um novo contrato</p>
+                </div>
+                <div class="top-bar-actions">
+                    <a href="/admin/contracts" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-2"></i>Voltar
+                    </a>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="bi bi-moon-stars" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            <% if (typeof error_msg !=='undefined' && error_msg && error_msg.length> 0) { %>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <%= error_msg %>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <% } %>
+
+                    <div class="row g-4">
+                        <!-- Form -->
+                        <div class="col-md-7">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-white border-0 pt-4 pb-0">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-file-text text-primary me-2"></i>
+                                        Dados do Contrato
+                                    </h5>
+                                </div>
+                                <div class="card-body mt-3">
+                                    <form action="/admin/contracts/new" method="POST" id="contractForm">
+                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                    <!-- Step 1: Client Selection -->
+                                    <div class="mb-4">
+                                        <label class="form-label fw-bold">
+                                            <i class="bi bi-person me-2"></i>
+                                            1. Selecione o Cliente *
+                                        </label>
+                                        <select name="userId" class="form-select form-select-lg" required
+                                            id="clientSelect">
+                                            <option value="">Escolha um cliente...</option>
+                                            <% clients.forEach(client=> { %>
+                                                <option value="<%= client.id %>" data-name="<%= client.name %>"
+                                                    data-cpf="<%= client.cpf %>" data-email="<%= client.email %>"
+                                                    <%=(typeof clientId !=='undefined' && clientId &&
+                                                    clientId.toString()===client.id.toString()) ? 'selected' : '' %>>
+                                                    <%= client.name %> - <%=
+                                                            client.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4'
+                                                            ) %>
+                                                </option>
+                                                <% }); %>
+                                        </select>
+                                        <small class="text-muted">Selecione o cliente que irá contratar o
+                                            consórcio</small>
+
+                                        <div id="clientPreview" class="mt-3 p-3 rounded"
+                                            style="background: var(--bg-tertiary); display: none;">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <div class="user-avatar text-white fw-bold d-flex align-items-center justify-content-center"
+                                                    style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(45deg, var(--primary-color), #2b5c8f); font-size: 1.2rem;">
+                                                    <span id="clientInitial"></span>
+                                                </div>
+                                                <div>
+                                                    <strong id="clientName" class="d-block"></strong>
+                                                    <small class="text-muted d-block" id="clientCpf"></small>
+                                                    <small class="text-muted" id="clientEmail"></small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <hr class="my-4">
+
+                                    <!-- Step 2: Plan Selection -->
+                                    <div class="mb-4">
+                                        <label class="form-label fw-bold">
+                                            <i class="bi bi-box-seam me-2"></i>
+                                            2. Selecione o Produto e Plano *
+                                        </label>
+                                        
+                                        <input type="hidden" name="planId" id="planId" required>
+
+                                        <div class="row g-3">
+                                            <div class="col-md-12">
+                                                <label class="form-label small">Produto</label>
+                                                <select id="uiProductSelect" class="form-select form-select-lg">
+                                                    <option value="">Escolha um produto...</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="col-md-6">
+                                                <label class="form-label small">Parcelas (Meses)</label>
+                                                <select id="uiDurationSelect" class="form-select form-select-lg" disabled>
+                                                    <option value="">Escolha as parcelas...</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label class="form-label small">Taxa Administrativa</label>
+                                                <select id="uiFeeSelect" class="form-select form-select-lg" disabled>
+                                                    <option value="">Escolha a taxa...</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <small class="text-muted mt-2 d-block">Escolha o produto, a duração em meses e a taxa para definir o plano</small>
+                                    </div>
+
+                                    <hr class="my-4">
+
+                                    <!-- Step 3: Group/Quota -->
+                                    <div class="mb-4">
+                                        <label class="form-label fw-bold">
+                                            <i class="bi bi-hash me-2"></i>
+                                            3. Números do Grupo e Cota
+                                        </label>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label class="form-label small">Número do Grupo</label>
+                                                <input type="text" name="groupNumber" class="form-control"
+                                                    placeholder="Ex: 001" maxlength="3" pattern="[0-9]{1,3}">
+                                                <small class="text-muted">Deixe em branco para gerar
+                                                    automaticamente</small>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label small">Número da Cota</label>
+                                                <input type="text" name="quotaNumber" class="form-control"
+                                                    placeholder="Ex: 042" maxlength="3" pattern="[0-9]{1,3}">
+                                                <small class="text-muted">Deixe em branco para gerar
+                                                    automaticamente</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Submit Buttons -->
+                                    <div class="d-flex justify-content-end gap-3 mt-4">
+                                        <a href="/admin/contracts" class="btn btn-outline-secondary btn-lg">
+                                            <i class="bi bi-x-lg me-2"></i>Cancelar
+                                        </a>
+                                        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" disabled>
+                                            <i class="bi bi-check-lg me-2"></i>Criar Contrato
+                                        </button>
+                                    </div>
+                                </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preview -->
+                        <div class="col-md-5">
+                            <div class="card shadow-sm border-0 sticky-top" style="top: 2rem;">
+                                <div class="card-header bg-white border-0 pt-4 pb-0">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-eye text-primary me-2"></i>
+                                        Pré-visualização
+                                    </h5>
+                                </div>
+                                <div class="card-body mt-3">
+                                    <div id="previewEmpty" class="text-center py-5">
+                                    <i class="bi bi-file-earmark-text" style="font-size: 4rem; opacity: 0.2;"></i>
+                                    <p class="text-muted mt-3">Preencha os campos ao lado<br>para ver a prévia</p>
+                                </div>
+
+                                <div id="previewContent" style="display: none;">
+                                    <!-- Product Image -->
+                                    <div class="mb-4" id="productImageContainer" style="display: none;">
+                                        <img id="productImage" src="" alt="Produto" class="w-100 rounded"
+                                            style="height: 200px; object-fit: cover;">
+                                    </div>
+
+                                    <!-- Plan Summary -->
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block mb-1">Produto</small>
+                                        <h5 class="mb-0" id="previewProduct">-</h5>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block mb-1">Duração do Plano</small>
+                                        <h6 class="mb-0" id="previewDuration">-</h6>
+                                    </div>
+
+                                    <hr>
+
+                                    <!-- Financial Info -->
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block mb-1">Preço do Bem</small>
+                                        <h5 class="mb-0" style="color: var(--primary-color);" id="previewPrice">-</h5>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block mb-1">Taxa Administrativa</small>
+                                        <p class="mb-0" id="previewAdminFee">-</p>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block mb-1">Taxa de Fundo</small>
+                                        <p class="mb-0" id="previewFundRate">-</p>
+                                    </div>
+
+                                    <hr>
+
+                                    <div class="mb-3 p-3 rounded" style="background: var(--bg-secondary);">
+                                        <small class="text-muted d-block mb-1">Valor Total do Crédito</small>
+                                        <h4 class="mb-0" style="color: var(--success-color);" id="previewCreditValue">-
+                                        </h4>
+                                    </div>
+
+                                    <div class="mb-3 p-3 rounded" style="background: var(--bg-secondary);">
+                                        <small class="text-muted d-block mb-1">Parcela Mensal Estimada</small>
+                                        <h4 class="mb-0" style="color: var(--warning-color);" id="previewInstallment">-
+                                        </h4>
+                                    </div>
+
+                                    <hr>
+
+                                    <div id="previewClientInfo" style="display: none;">
+                                        <small class="text-muted d-block mb-2">Contratante</small>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="user-avatar text-white fw-bold d-flex align-items-center justify-content-center" 
+                                                style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(45deg, var(--primary-color), #2b5c8f);">
+                                                <span id="previewClientInitial"></span>
+                                            </div>
+                                            <div>
+                                                <strong id="previewClientName" class="d-block small"></strong>
+                                                <small class="text-muted" id="previewClientCpf"></small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Alert -->
+                                    <div class="alert alert-info mt-4">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        <small>
+                                            Ao criar o contrato, serão geradas automaticamente
+                                            <strong id="installmentCount">-</strong> parcelas com vencimento
+                                            mensal no dia 10 de cada mês.
+                                        </small>
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+        </div>
+
+<%- include('../../partials/footer') %>

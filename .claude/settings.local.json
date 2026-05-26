@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "WebFetch(domain:apicenter.estaleiro.serpro.gov.br)"
+    ]
+  }
+}

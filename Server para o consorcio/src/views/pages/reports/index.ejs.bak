@@ -1,0 +1,157 @@
+<%- include('../../partials/header') %>
+
+    <%- include('../../partials/sidebar', { path: '/reports' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title">Relatórios</h1>
+                    <p class="text-muted mb-0">Estatísticas e métricas do sistema</p>
+                </div>
+                <div class="top-bar-actions">
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="bi bi-moon-stars" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Financial Overview -->
+            <div class="row g-4 mb-5">
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Total Recebido</div>
+                                <div style="font-size: 1.8rem; font-weight: 800; line-height: 1; color: #10b981;">
+                                    <span style="font-size: 1rem;">R$</span> <%= stats.totalReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                </div>
+                                <small class="text-muted mt-2 d-block">Liquidado na conta</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                                <i class="bi bi-cash-stack"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Em Atraso</div>
+                                <div style="font-size: 1.8rem; font-weight: 800; line-height: 1; color: #ef4444;">
+                                    <span style="font-size: 1rem;">R$</span> <%= stats.totalOverdue.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                </div>
+                                <small class="text-muted mt-2 d-block">Parcelas não pagas</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">A Receber</div>
+                                <div style="font-size: 1.8rem; font-weight: 800; line-height: 1; color: #f59e0b;">
+                                    <span style="font-size: 1rem;">R$</span> <%= stats.totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                </div>
+                                <small class="text-muted mt-2 d-block">Previsão futura</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                                <i class="bi bi-clock-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Clientes Ativos</div>
+                                <div style="font-size: 1.8rem; font-weight: 800; line-height: 1; color: var(--primary-color);">
+                                    <%= stats.totalClients %>
+                                </div>
+                                <small class="text-muted mt-2 d-block">No sistema</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">
+                                <i class="bi bi-people-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mb-5">
+                <!-- Monthly Revenue Chart -->
+                <div class="col-md-8">
+                    <div class="premium-info-card h-100">
+                        <div class="card-header-premium">
+                            <i class="bi bi-graph-up-arrow me-2 text-primary"></i>
+                            Receita Mensal (Últimos 12 meses)
+                        </div>
+                        <div class="p-4">
+                            <div id="chartData" data-revenue="<%= JSON.stringify(monthlyRevenue) %>" style="display: none;"></div>
+                            <canvas id="revenueChart" height="100"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="col-md-4">
+                    <div class="premium-info-card h-100">
+                        <div class="card-header-premium">
+                            <i class="bi bi-pie-chart-fill me-2 text-warning"></i>
+                            Resumo
+                        </div>
+                        <div class="p-4">
+                            <div class="row gy-3">
+                                <div class="col-6">
+                                    <div class="info-label">Contratos Ativos</div>
+                                    <p class="h4 mb-0 fw-bold" style="color: var(--success-color);">
+                                        <%= stats.activeContracts %> / <%= stats.totalContracts %>
+                                    </p>
+                                </div>
+                                <div class="col-6">
+                                    <div class="info-label">Contemplados</div>
+                                    <p class="h4 mb-0 fw-bold" style="color: var(--primary-color);">
+                                        <%= stats.contemplatedContracts %>
+                                    </p>
+                                </div>
+                                <div class="col-6">
+                                    <div class="info-label">Parcelas Pagas</div>
+                                    <p class="h4 mb-0 fw-bold" style="color: var(--success-color);">
+                                        <%= stats.paidCount %>
+                                    </p>
+                                </div>
+                                <div class="col-6">
+                                    <div class="info-label">Atrasadas</div>
+                                    <p class="h4 mb-0 fw-bold" style="color: var(--danger-color);">
+                                        <%= stats.overdueCount %>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <hr style="border-color: var(--border-color); margin: 1.5rem 0;">
+
+                            <div class="row gy-3">
+                                <div class="col-6">
+                                    <div class="info-label">Produtos Listados</div>
+                                    <p class="h4 mb-0 fw-bold"><%= stats.totalProducts %></p>
+                                </div>
+                                <div class="col-6">
+                                    <div class="info-label">Lances Pendentes</div>
+                                    <p class="h4 mb-0 fw-bold" style="color: var(--warning-color);">
+                                        <%= stats.pendingBids %> / <%= stats.totalBids %>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+<%- include('../../partials/footer') %>

@@ -1,0 +1,215 @@
+<%- include('../../partials/header') %>
+
+    <%- include('../../partials/sidebar', { path: '/bids' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title">Detalhes do Lance</h1>
+                    <p class="text-muted mb-0">Lance #<%= bid.id.substring(0, 8).toUpperCase() %></p>
+                </div>
+                <div class="top-bar-actions">
+                    <a href="/admin/bids" class="btn btn-outline-secondary shadow-sm" style="border-radius: 10px;">
+                        <i class="bi bi-arrow-left me-2"></i>Voltar
+                    </a>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="bi bi-moon-stars" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length > 0) { %>
+                <div class="alert alert-success alert-dismissible fade show shadow-sm border-0" role="alert" style="border-radius: 12px;">
+                    <i class="bi bi-check-circle-fill me-2"></i><%= success_msg %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+            <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length > 0) { %>
+                <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0" role="alert" style="border-radius: 12px;">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i><%= error_msg %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+
+            <div class="row g-4">
+                <!-- LEFT: Bid Info -->
+                <div class="col-md-6">
+                    <div class="premium-info-card h-100">
+                        <div class="card-header-premium">
+                            <i class="bi bi-lightning-fill text-warning me-2"></i>
+                            Informações do Lance
+                        </div>
+                        <div class="p-4">
+                            <!-- Status -->
+                            <div class="mb-4">
+                                <div class="info-label mb-1">Status</div>
+                                <% if (bid.status === 'PENDING') { %>
+                                    <span class="badge-premium" style="background:rgba(245,158,11,0.1); color:#f59e0b; border:1px solid rgba(245,158,11,0.2); font-size:0.85rem;"><i class="bi bi-clock-fill me-1"></i>Pendente</span>
+                                <% } else if (bid.status === 'APPROVED') { %>
+                                    <span class="badge-premium" style="background:rgba(16,185,129,0.1); color:#10b981; border:1px solid rgba(16,185,129,0.2); font-size:0.85rem;"><i class="bi bi-check-circle-fill me-1"></i>Aprovado</span>
+                                <% } else if (bid.status === 'REJECTED') { %>
+                                    <span class="badge-premium" style="background:rgba(239,68,68,0.1); color:#ef4444; border:1px solid rgba(239,68,68,0.2); font-size:0.85rem;"><i class="bi bi-x-circle-fill me-1"></i>Rejeitado</span>
+                                <% } else if (bid.status === 'CONTEMPLATED') { %>
+                                    <span class="badge-premium" style="background:rgba(139,92,246,0.1); color:#8b5cf6; border:1px solid rgba(139,92,246,0.2); font-size:0.85rem;"><i class="bi bi-trophy-fill me-1"></i>Contemplado</span>
+                                <% } %>
+                                <% if (bid.isWinner) { %>
+                                    <span class="badge-premium ms-2" style="background:rgba(245,158,11,0.15); color:#d97706; border:1px solid rgba(245,158,11,0.3); font-size:0.85rem;"><i class="bi bi-star-fill me-1"></i>Vencedor</span>
+                                <% } %>
+                            </div>
+
+                            <!-- Value + Percentage -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-6">
+                                    <div class="p-3 rounded-3" style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2);">
+                                        <div class="info-label mb-1">Valor do Lance</div>
+                                        <div class="fw-bold" style="font-size:1.4rem; color:var(--success-color);">
+                                            R$ <%= Number(bid.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-3 rounded-3" style="background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.2);">
+                                        <div class="info-label mb-1">% do Crédito</div>
+                                        <div class="fw-bold" style="font-size:1.4rem; color:var(--primary-color);">
+                                            <%= bidPercentage %>%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Type + Date -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-6">
+                                    <div class="info-label mb-1">Tipo</div>
+                                    <% if (bid.type === 'FIXED') { %>
+                                        <span class="badge-premium" style="background:rgba(13,110,253,0.1); color:#0d6efd; border:1px solid rgba(13,110,253,0.2);">Fixo</span>
+                                    <% } else if (bid.type === 'FREE') { %>
+                                        <span class="badge-premium" style="background:rgba(6,182,212,0.1); color:#0891b2; border:1px solid rgba(6,182,212,0.2);">Livre</span>
+                                    <% } else { %>
+                                        <span class="badge-premium" style="background:var(--bg-secondary); color:var(--text-secondary); border:1px solid var(--border-color);"><%= bid.type %></span>
+                                    <% } %>
+                                </div>
+                                <div class="col-6">
+                                    <div class="info-label mb-1">Equivale a</div>
+                                    <span class="fw-semibold"><%= installmentsFromBid %> parcela(s)</span>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <div class="info-label mb-1">Data do Lance</div>
+                                <p class="mb-0"><i class="bi bi-calendar3 me-1 text-muted"></i><%= new Date(bid.createdAt).toLocaleString('pt-BR') %></p>
+                            </div>
+
+                            <% if (bid.drawDate) { %>
+                                <div class="mb-4">
+                                    <div class="info-label mb-1">Data do Sorteio</div>
+                                    <p class="mb-0"><i class="bi bi-trophy me-1 text-muted"></i><%= new Date(bid.drawDate).toLocaleString('pt-BR') %></p>
+                                </div>
+                            <% } %>
+
+                            <!-- Actions -->
+                            <% if (bid.status === 'PENDING') { %>
+                                <hr style="border-color: var(--border-color);">
+                                <div class="d-flex gap-2">
+                                    <form action="/admin/bids/<%= bid.id %>/approve" method="POST" class="flex-fill">
+                                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                        <button type="submit" class="btn btn-success w-100" style="border-radius: 10px;">
+                                            <i class="bi bi-check-lg me-2"></i>Aprovar Lance
+                                        </button>
+                                    </form>
+                                    <form action="/admin/bids/<%= bid.id %>/reject" method="POST" class="flex-fill">
+                                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                        <button type="submit" class="btn btn-danger w-100" style="border-radius: 10px;">
+                                            <i class="bi bi-x-lg me-2"></i>Rejeitar
+                                        </button>
+                                    </form>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT: Client + Contract -->
+                <div class="col-md-6">
+                    <div class="premium-info-card mb-4">
+                        <div class="card-header-premium">
+                            <i class="bi bi-person-fill text-primary me-2"></i>
+                            Cliente e Contrato
+                        </div>
+                        <div class="p-4">
+                            <div class="d-flex align-items-center mb-4 gap-3">
+                                <div style="width:52px; height:52px; border-radius:14px; background:linear-gradient(135deg,var(--primary-color),var(--primary-dark)); color:white; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1.3rem; flex-shrink:0;">
+                                    <%= bid.subscription.user.name.charAt(0).toUpperCase() %>
+                                </div>
+                                <div>
+                                    <div class="fw-bold" style="font-size:1.05rem;"><%= bid.subscription.user.name %></div>
+                                    <div class="text-muted small"><%= bid.subscription.user.email %></div>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-6">
+                                    <div class="info-label">CPF</div>
+                                    <code style="background:var(--bg-secondary); padding:0.2rem 0.5rem; border-radius:4px; font-size:0.85rem;"><%= bid.subscription.user.cpf %></code>
+                                </div>
+                                <div class="col-6">
+                                    <div class="info-label">Grupo / Cota</div>
+                                    <span class="badge" style="background:var(--bg-secondary); color:var(--text-secondary); border:1px solid var(--border-color);">
+                                        G:<%= bid.subscription.groupNumber || '-' %> / C:<%= bid.subscription.quotaNumber || '-' %>
+                                    </span>
+                                </div>
+                                <div class="col-6">
+                                    <div class="info-label">Produto</div>
+                                    <span class="fw-semibold small"><%= bid.subscription.plan.product.name %></span>
+                                </div>
+                                <div class="col-6">
+                                    <div class="info-label">Crédito Total</div>
+                                    <span class="fw-semibold small" style="color:var(--success-color);">R$ <%= Number(bid.subscription.creditValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %></span>
+                                </div>
+                            </div>
+
+                            <a href="/admin/contracts/<%= bid.subscription.id %>" class="btn btn-outline-primary w-100 mt-2" style="border-radius: 10px;">
+                                <i class="bi bi-file-text me-2"></i>Ver Contrato Completo
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Contract Progress -->
+                    <div class="premium-info-card">
+                        <div class="card-header-premium">
+                            <i class="bi bi-bar-chart-fill text-success me-2"></i>
+                            Progresso do Contrato
+                        </div>
+                        <div class="p-4">
+                            <div class="row g-3 mb-3">
+                                <div class="col-4 text-center">
+                                    <div class="info-label">Pagas</div>
+                                    <div class="fw-bold" style="font-size:1.5rem; color:#10b981;"><%= paidInstallments %></div>
+                                </div>
+                                <div class="col-4 text-center">
+                                    <div class="info-label">Total</div>
+                                    <div class="fw-bold" style="font-size:1.5rem; color:var(--primary-color);"><%= totalInstallments %></div>
+                                </div>
+                                <div class="col-4 text-center">
+                                    <div class="info-label">Recebido</div>
+                                    <div class="fw-bold" style="font-size:0.95rem; color:var(--success-color);">R$ <%= totalPaid.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %></div>
+                                </div>
+                            </div>
+                            <% const progress = totalInstallments > 0 ? (paidInstallments / totalInstallments * 100).toFixed(1) : 0; %>
+                            <div class="mb-1 d-flex justify-content-between">
+                                <small class="text-muted">Progresso</small>
+                                <small class="fw-semibold"><%= progress %>%</small>
+                            </div>
+                            <div class="progress" style="height:8px; border-radius:6px; background:var(--bg-secondary);">
+                                <div class="progress-bar" <%- `style="width:${progress}%; background:linear-gradient(90deg,var(--primary-color),#10b981); border-radius:6px;"` %>></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-5"></div>
+        </div>
+
+<%- include('../../partials/footer') %>

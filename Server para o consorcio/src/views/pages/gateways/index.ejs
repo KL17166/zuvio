@@ -1,0 +1,732 @@
+<%- include('../../partials/header') %>
+
+    <%- include('../../partials/sidebar', { path: '/gateways' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title">Gateways de Pagamento</h1>
+                    <p class="text-muted mb-0">Gerencie seus gateways, saldos e saques</p>
+                </div>
+                <div class="top-bar-actions">
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="bi bi-moon-stars" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length > 0) { %>
+                <div class="alert alert-success alert-dismissible fade show shadow-sm border-0" role="alert" style="border-radius: 12px;">
+                    <i class="bi bi-check-circle-fill me-2"></i><%= success_msg %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+            <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length > 0) { %>
+                <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0" role="alert" style="border-radius: 12px;">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i><%= error_msg %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+
+            <style>
+                /* ═══════════════════════════════════════════
+                   TABS
+                   ═══════════════════════════════════════════ */
+                .gw-tabs-nav {
+                    display: flex; gap: 0.25rem;
+                    background: var(--card-bg);
+                    border: 1px solid var(--border-color);
+                    border-radius: 14px; padding: 0.35rem;
+                    margin-bottom: 2rem;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+                }
+                .gw-tab-btn {
+                    flex: 1; border: none; background: transparent;
+                    padding: 0.75rem 1rem; border-radius: 10px;
+                    font-weight: 600; font-size: 0.88rem;
+                    color: var(--text-secondary); cursor: pointer;
+                    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+                    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+                }
+                .gw-tab-btn:hover { background: rgba(99, 102, 241, 0.06); color: var(--text-primary); }
+                .gw-tab-btn.active {
+                    background: linear-gradient(135deg, var(--primary-color), #8b5cf6);
+                    color: white; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+                }
+                .gw-panel { display: none; animation: fadeSlide 0.35s ease; }
+                .gw-panel.active { display: block; }
+                @keyframes fadeSlide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+                /* ═══════════════════════════════════════════
+                   BALANCE CARDS (Glassmorphism — Reuses dashboard style)
+                   ═══════════════════════════════════════════ */
+                .gw-bal-card {
+                    position: relative; border-radius: 16px; padding: 1.5rem;
+                    overflow: hidden; border: 1px solid rgba(255,255,255,0.15);
+                    backdrop-filter: blur(20px);
+                    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+                    min-height: 140px;
+                }
+                .gw-bal-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
+                .gw-bal-card .bal-bg { position: absolute; inset: 0; opacity: 0.95; z-index: 0; border-radius: 16px; }
+                .gw-bal-card .bal-content { position: relative; z-index: 1; }
+                .gw-bal-card.available .bal-bg { background: linear-gradient(135deg, #059669, #10b981, #34d399); }
+                .gw-bal-card.pending .bal-bg  { background: linear-gradient(135deg, #d97706, #f59e0b, #fbbf24); }
+                .gw-bal-card.locked .bal-bg   { background: linear-gradient(135deg, #7c3aed, #8b5cf6, #a78bfa); }
+                .gw-bal-card .bal-icon {
+                    width: 48px; height: 48px; border-radius: 14px;
+                    background: rgba(255,255,255,0.2); display: flex;
+                    align-items: center; justify-content: center;
+                    font-size: 1.4rem; color: white; backdrop-filter: blur(10px);
+                }
+                .gw-bal-card .bal-label {
+                    color: rgba(255,255,255,0.85); font-size: 0.8rem;
+                    font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.35rem;
+                }
+                .gw-bal-card .bal-val {
+                    color: white; font-size: 1.8rem; font-weight: 800;
+                    line-height: 1; display: flex; align-items: baseline; gap: 0.25rem;
+                }
+                .gw-bal-card .bal-val .cur { font-size: 0.9rem; font-weight: 600; opacity: 0.8; }
+                .gw-bal-card .bal-sub { color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-top: 0.5rem; }
+                .gw-shimmer {
+                    background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.1) 75%);
+                    background-size: 200% 100%; animation: gwShimmer 1.5s infinite;
+                    border-radius: 8px; height: 2rem; width: 60%;
+                }
+                @keyframes gwShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+                .gw-error-badge {
+                    background: rgba(255,255,255,0.2); border-radius: 8px;
+                    padding: 0.5rem 0.75rem; color: rgba(255,255,255,0.9);
+                    font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem;
+                }
+                [data-theme='dark'] .gw-bal-card { border-color: rgba(255,255,255,0.08); }
+
+                /* ═══════════════════════════════════════════
+                   GATEWAY STATUS TABLE
+                   ═══════════════════════════════════════════ */
+                .gw-table-card {
+                    border-radius: 16px; overflow: hidden;
+                    border: 1px solid var(--border-color);
+                    box-shadow: 0 2px 15px rgba(0,0,0,0.04);
+                }
+                .gw-table-card .table { margin: 0; }
+                .gw-table-card .table th {
+                    background: rgba(99, 102, 241, 0.04);
+                    font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+                    letter-spacing: 0.5px; color: var(--text-secondary);
+                    padding: 0.85rem 1.25rem; border-bottom: 1px solid var(--border-color);
+                }
+                .gw-table-card .table td {
+                    padding: 1rem 1.25rem; vertical-align: middle;
+                    border-bottom: 1px solid var(--border-color);
+                }
+                .gw-table-card .table tr:last-child td { border-bottom: none; }
+                .gw-table-card .table tr:hover td { background: rgba(99, 102, 241, 0.02); }
+                .gw-icon-sm {
+                    width: 38px; height: 38px; border-radius: 10px;
+                    display: inline-flex; align-items: center; justify-content: center;
+                    font-size: 1rem; color: white; flex-shrink: 0;
+                }
+                .gw-icon-sm.pixgo { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+                .gw-icon-sm.sigilopay { background: linear-gradient(135deg, #059669, #10b981); }
+                .gw-pill {
+                    display: inline-flex; align-items: center; gap: 0.3rem;
+                    padding: 0.25rem 0.65rem; border-radius: 20px;
+                    font-size: 0.72rem; font-weight: 700;
+                }
+                .gw-pill.on  { background: rgba(16, 185, 129, 0.12); color: #059669; }
+                .gw-pill.off { background: rgba(239, 68, 68, 0.1);  color: #ef4444; }
+                .gw-pill.tag { background: rgba(59, 130, 246, 0.08); color: #3b82f6; text-transform: uppercase; }
+                .gw-pill.star { background: rgba(99, 102, 241, 0.1); color: #6366f1; }
+
+                /* ═══════════════════════════════════════════
+                   CONFIG TAB — gateway picker + form
+                   ═══════════════════════════════════════════ */
+                .gw-pick {
+                    border-radius: 14px; padding: 1.15rem; cursor: pointer;
+                    border: 2px solid var(--border-color); text-align: center;
+                    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+                }
+                .gw-pick:hover { border-color: rgba(99, 102, 241, 0.3); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.06); }
+                .gw-pick.sel {
+                    border-color: var(--primary-color); background: rgba(99, 102, 241, 0.04);
+                    box-shadow: 0 6px 25px rgba(99, 102, 241, 0.15); transform: translateY(-2px);
+                }
+                .gw-pick .pick-icon {
+                    width: 52px; height: 52px; border-radius: 14px;
+                    display: inline-flex; align-items: center; justify-content: center;
+                    font-size: 1.4rem; margin-bottom: 0.5rem; color: white;
+                }
+                .gw-pick .pick-icon.pixgo { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+                .gw-pick .pick-icon.sigilopay { background: linear-gradient(135deg, #059669, #10b981); }
+                .gw-form-wrap {
+                    border-radius: 16px; border: 1px solid var(--border-color);
+                    overflow: hidden; box-shadow: 0 2px 15px rgba(0,0,0,0.04);
+                    animation: fadeSlide 0.3s ease;
+                }
+                .gw-form-header {
+                    padding: 1.15rem 1.5rem; display: flex; justify-content: space-between; align-items: center;
+                    border-bottom: 1px solid var(--border-color);
+                    background: rgba(99, 102, 241, 0.03);
+                }
+
+                /* ═══════════════════════════════════════════
+                   WITHDRAW TAB
+                   ═══════════════════════════════════════════ */
+                .wd-summary-card {
+                    border-radius: 16px; border: 1px solid var(--border-color);
+                    overflow: hidden; box-shadow: 0 2px 15px rgba(0,0,0,0.04);
+                    height: 100%;
+                }
+                .wd-summary-header {
+                    padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color);
+                    background: rgba(16, 185, 129, 0.04);
+                    font-weight: 700; font-size: 0.9rem;
+                }
+                .wd-big-value {
+                    font-size: 2.8rem; font-weight: 800; line-height: 1;
+                    background: linear-gradient(135deg, #059669, #10b981);
+                    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                }
+                .wd-form-card {
+                    border-radius: 16px; border: 1px solid var(--border-color);
+                    overflow: hidden; box-shadow: 0 2px 15px rgba(0,0,0,0.04);
+                }
+                .wd-form-header {
+                    padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color);
+                    background: rgba(99, 102, 241, 0.03);
+                }
+                .pix-type-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; }
+                .pix-type-btn {
+                    border: 2px solid var(--border-color); border-radius: 12px;
+                    padding: 0.75rem 0.5rem; cursor: pointer; text-align: center;
+                    font-size: 0.78rem; font-weight: 600;
+                    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+                    display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+                }
+                .pix-type-btn i { font-size: 1.1rem; }
+                .pix-type-btn:hover { border-color: rgba(99, 102, 241, 0.4); transform: translateY(-1px); }
+                .pix-type-btn.sel {
+                    border-color: var(--primary-color); color: var(--primary-color);
+                    background: rgba(99, 102, 241, 0.06);
+                    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+                }
+                .wd-result {
+                    border-radius: 12px; padding: 1rem 1.25rem; margin-top: 1rem; display: none;
+                    font-weight: 600; font-size: 0.9rem;
+                }
+                .wd-result.ok  { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: #059669; }
+                .wd-result.err { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; }
+                .wd-info-box {
+                    margin-top: 1.5rem; padding: 1rem 1.25rem; border-radius: 12px;
+                    background: rgba(99, 102, 241, 0.04); border: 1px solid rgba(99, 102, 241, 0.1);
+                }
+                .wd-detail-row {
+                    display: flex; justify-content: space-between; align-items: center;
+                    padding: 0.5rem 0; font-size: 0.88rem;
+                }
+                .wd-detail-row + .wd-detail-row { border-top: 1px solid var(--border-color); }
+
+                /* responsive */
+                @media (max-width: 767px) {
+                    .gw-tabs-nav { flex-direction: column; }
+                    .pix-type-grid { grid-template-columns: repeat(3, 1fr); }
+                }
+            </style>
+
+            <!-- ╔══════════════════════════════════════════════════════╗
+                 ║  TABS NAVIGATION (pill style, centered)             ║
+                 ╚══════════════════════════════════════════════════════╝ -->
+            <div class="gw-tabs-nav">
+                <button class="gw-tab-btn active" onclick="switchTab('overview', this)">
+                    <i class="bi bi-grid-1x2-fill"></i>Visão Geral
+                </button>
+                <button class="gw-tab-btn" onclick="switchTab('config', this)">
+                    <i class="bi bi-sliders"></i>Configurações
+                </button>
+                <button class="gw-tab-btn" onclick="switchTab('withdraw', this)">
+                    <i class="bi bi-cash-stack"></i>Saques
+                </button>
+            </div>
+
+            <!-- ╔══════════════════════════════════════════════════════╗
+                 ║  TAB 1 — VISÃO GERAL                                ║
+                 ╚══════════════════════════════════════════════════════╝ -->
+            <div class="gw-panel active" id="panel-overview">
+
+                <!-- SigiloPay Balance -->
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7); display: flex; align-items: center; justify-content: center; color: white; font-size: 1rem; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);">
+                        <i class="bi bi-shield-lock-fill"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-bold" style="font-size: 0.95rem;">Saldo SigiloPay</h6>
+                        <small class="text-muted" style="font-size: 0.75rem;">Atualizado em tempo real</small>
+                    </div>
+                </div>
+
+                <div class="row g-4 mb-5">
+                    <div class="col-md-4">
+                        <div class="gw-bal-card available">
+                            <div class="bal-bg"></div>
+                            <div class="bal-content">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div class="bal-icon"><i class="bi bi-wallet2"></i></div>
+                                </div>
+                                <div class="bal-label">Disponível para Saque</div>
+                                <div class="bal-val" id="ovAvailable"><div class="gw-shimmer"></div></div>
+                                <div class="bal-sub">Valor liberado na conta</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="gw-bal-card pending">
+                            <div class="bal-bg"></div>
+                            <div class="bal-content">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div class="bal-icon"><i class="bi bi-hourglass-split"></i></div>
+                                </div>
+                                <div class="bal-label">Saldo Pendente</div>
+                                <div class="bal-val" id="ovPending"><div class="gw-shimmer"></div></div>
+                                <div class="bal-sub">Aguardando compensação</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="gw-bal-card locked">
+                            <div class="bal-bg"></div>
+                            <div class="bal-content">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div class="bal-icon"><i class="bi bi-lock-fill"></i></div>
+                                </div>
+                                <div class="bal-label">Saldo Retido</div>
+                                <div class="bal-val" id="ovLocked"><div class="gw-shimmer"></div></div>
+                                <div class="bal-sub">Reserva de segurança</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gateway Status Table -->
+                <h6 class="fw-bold mb-3" style="font-size: 0.95rem;">
+                    <i class="bi bi-hdd-network-fill me-2" style="color: var(--primary-color);"></i>Status dos Gateways
+                </h6>
+                <div class="gw-table-card">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Gateway</th>
+                                <th>Status</th>
+                                <th>Métodos</th>
+                                <th>Padrão</th>
+                                <th>API Key</th>
+                                <th>Ambiente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% gateways.forEach(gw => { %>
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="gw-icon-sm <%= gw.name %>">
+                                            <% if (gw.name === 'pixgo') { %><i class="bi bi-qr-code-scan"></i>
+                                            <% } else if (gw.name === 'sigilopay') { %><i class="bi bi-shield-lock-fill"></i>
+                                            <% } else { %><i class="bi bi-hdd-network"></i><% } %>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold" style="font-size: 0.9rem;"><%= gw.displayName %></div>
+                                            <div class="text-muted" style="font-size: 0.72rem;"><%= gw.baseUrl ? gw.baseUrl.replace('https://', '') : '—' %></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <% if (gw.enabled) { %>
+                                        <span class="gw-pill on"><i class="bi bi-check-circle-fill"></i> Ativo</span>
+                                    <% } else { %>
+                                        <span class="gw-pill off"><i class="bi bi-x-circle-fill"></i> Inativo</span>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1 flex-wrap">
+                                        <% if (gw.supportsPix) { %><span class="gw-pill tag">PIX</span><% } %>
+                                        <% if (gw.supportsBoleto) { %><span class="gw-pill tag">Boleto</span><% } %>
+                                        <% if (gw.supportsCard) { %><span class="gw-pill tag">Cartão</span><% } %>
+                                    </div>
+                                </td>
+                                <td>
+                                    <% if (gw.isDefaultPix) { %><span class="gw-pill star"><i class="bi bi-star-fill"></i> PIX</span><% } else { %>—<% } %>
+                                </td>
+                                <td>
+                                    <% if (gw.apiKey) { %>
+                                        <span class="gw-pill on"><i class="bi bi-key-fill"></i> OK</span>
+                                    <% } else { %>
+                                        <span class="gw-pill off"><i class="bi bi-key"></i> Falta</span>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <span class="gw-pill tag"><%= gw.environment || 'sandbox' %></span>
+                                </td>
+                            </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ╔══════════════════════════════════════════════════════╗
+                 ║  TAB 2 — CONFIGURAÇÕES                              ║
+                 ╚══════════════════════════════════════════════════════╝ -->
+            <div class="gw-panel" id="panel-config">
+
+                <!-- Gateway Picker -->
+                <h6 class="fw-bold mb-3" style="font-size: 0.95rem;">Selecione o gateway para configurar</h6>
+                <div class="row g-3 mb-4">
+                    <% gateways.forEach((gw, idx) => { %>
+                    <div class="col-md-4 col-lg-3">
+                        <div class="gw-pick h-100 <%= idx === 0 ? 'sel' : '' %>" onclick="pickGW(this, '<%= gw.id %>')">
+                            <div class="pick-icon <%= gw.name %>">
+                                <% if (gw.name === 'pixgo') { %><i class="bi bi-qr-code-scan"></i>
+                                <% } else { %><i class="bi bi-shield-lock-fill"></i><% } %>
+                            </div>
+                            <div class="fw-bold" style="font-size: 0.92rem;"><%= gw.displayName %></div>
+                            <div style="font-size: 0.75rem;" class="<%= gw.enabled ? 'text-success' : 'text-muted' %>">
+                                <i class="bi bi-circle-fill" style="font-size: 0.45rem; vertical-align: middle;"></i>
+                                <%= gw.enabled ? 'Ativo' : 'Inativo' %>
+                            </div>
+                        </div>
+                    </div>
+                    <% }); %>
+                </div>
+
+                <!-- Config Forms -->
+                <% gateways.forEach((gw, idx) => { %>
+                <div class="gw-form-wrap gw-cfg" id="cfg-<%= gw.id %>" <%- idx > 0 ? 'style="display:none;"' : '' %>>
+                    <div class="gw-form-header">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="gw-icon-sm <%= gw.name %>">
+                                <% if (gw.name === 'pixgo') { %><i class="bi bi-qr-code-scan"></i>
+                                <% } else { %><i class="bi bi-shield-lock-fill"></i><% } %>
+                            </div>
+                            <div>
+                                <strong><%= gw.displayName %></strong>
+                                <div class="text-muted" style="font-size: 0.75rem;">Configurações de integração</div>
+                            </div>
+                        </div>
+                        <form action="/admin/gateways/<%= gw.id %>/toggle" method="POST" style="display:inline;">
+                            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                            <button type="submit" class="btn btn-sm <%= gw.enabled ? 'btn-outline-danger' : 'btn-outline-success' %>" style="border-radius: 10px; font-weight: 600;">
+                                <i class="bi bi-<%= gw.enabled ? 'pause-circle' : 'play-circle' %> me-1"></i>
+                                <%= gw.enabled ? 'Desativar' : 'Ativar' %>
+                            </button>
+                        </form>
+                    </div>
+                    <div class="p-4">
+                        <form action="/admin/gateways/<%= gw.id %>/update" method="POST">
+                            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium" style="font-size: 0.85rem;">
+                                        <i class="bi bi-key-fill me-1 text-warning"></i>
+                                        <%= gw.name === 'pixgo' ? 'API Key' : 'API Key (Public)' %>
+                                    </label>
+                                    <input type="password" class="form-control" name="apiKey" style="border-radius: 10px;"
+                                        value="<%= gw.apiKey && !gw.apiKey.includes('.env') ? gw.apiKey : '' %>"
+                                        placeholder="<%= gw.apiKey ? '••••••• (configurado)' : 'Cole a API Key aqui' %>">
+                                    <% if ((gw.name === 'pixgo' || gw.name === 'sigilopay') && gw.envApiKey) { %>
+                                        <small class="text-success mt-1 d-block"><i class="bi bi-check-circle-fill me-1"></i>Presente no .env</small>
+                                    <% } %>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium" style="font-size: 0.85rem;">
+                                        <i class="bi bi-shield-lock me-1 text-danger"></i>
+                                        <%= gw.name === 'pixgo' ? 'Webhook Secret' : 'API Secret' %>
+                                    </label>
+                                    <input type="password" class="form-control"
+                                        name="<%= gw.name === 'pixgo' ? 'webhookSecret' : 'apiSecret' %>"
+                                        style="border-radius: 10px;"
+                                        value="<%= gw.name === 'pixgo' ? (gw.webhookSecret || '') : (gw.apiSecret || '') %>"
+                                        placeholder="Cole o secret aqui">
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mt-1">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium" style="font-size: 0.85rem;"><i class="bi bi-link-45deg me-1"></i>Base URL</label>
+                                    <input type="text" class="form-control" name="baseUrl" style="border-radius: 10px;"
+                                        value="<%= gw.baseUrl || '' %>" placeholder="URL da API">
+                                    <% if (gw.name === 'pixgo') { %>
+                                        <small class="text-muted mt-1 d-block"><i class="bi bi-lightbulb me-1 text-warning"></i>Padrão: https://pixgo.org/api/v1</small>
+                                    <% } else if (gw.name === 'sigilopay') { %>
+                                        <small class="text-muted mt-1 d-block"><i class="bi bi-lightbulb me-1 text-warning"></i>Padrão: https://app.sigilopay.com.br/api/v1</small>
+                                    <% } %>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-medium" style="font-size: 0.85rem;"><i class="bi bi-cloud me-1"></i>Ambiente</label>
+                                    <select class="form-select" name="environment" style="border-radius: 10px;">
+                                        <option value="production" <%= gw.environment === 'production' ? 'selected' : '' %>>Produção</option>
+                                        <option value="sandbox" <%= gw.environment === 'sandbox' ? 'selected' : '' %>>Sandbox</option>
+                                    </select>
+                                </div>
+                                <% if (gw.name === 'sigilopay') { %>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-medium" style="font-size: 0.85rem;"><i class="bi bi-tag me-1"></i>Platform ID</label>
+                                    <input type="text" class="form-control" name="platformId" style="border-radius: 10px;"
+                                        value="<%= gw.platformId || '' %>" placeholder="ID da plataforma">
+                                </div>
+                                <% } %>
+                            </div>
+
+                            <!-- Default toggles -->
+                            <div class="mt-4 p-3" style="background: rgba(99, 102, 241, 0.04); border-radius: 12px; border: 1px solid rgba(99, 102, 241, 0.1);">
+                                <div class="fw-bold mb-2" style="font-size: 0.82rem;">
+                                    <i class="bi bi-star-fill text-warning me-1"></i>Definir como gateway padrão para:
+                                </div>
+                                <div class="d-flex gap-4 flex-wrap">
+                                    <% if (gw.supportsPix) { %>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="isDefaultPix" value="true" id="dPix-<%= gw.id %>" <%= gw.isDefaultPix ? 'checked' : '' %>>
+                                        <label class="form-check-label fw-medium" for="dPix-<%= gw.id %>" style="font-size: 0.85rem;">PIX</label>
+                                    </div>
+                                    <% } %>
+                                    <% if (gw.supportsBoleto) { %>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="isDefaultBoleto" value="true" id="dBol-<%= gw.id %>" <%= gw.isDefaultBoleto ? 'checked' : '' %>>
+                                        <label class="form-check-label fw-medium" for="dBol-<%= gw.id %>" style="font-size: 0.85rem;">Boleto</label>
+                                    </div>
+                                    <% } %>
+                                    <% if (gw.supportsCard) { %>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="isDefaultCard" value="true" id="dCard-<%= gw.id %>" <%= gw.isDefaultCard ? 'checked' : '' %>>
+                                        <label class="form-check-label fw-medium" for="dCard-<%= gw.id %>" style="font-size: 0.85rem;">Cartão</label>
+                                    </div>
+                                    <% } %>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 text-end">
+                                <button type="submit" class="btn btn-primary px-4 py-2" style="border-radius: 12px; font-weight: 700;">
+                                    <i class="bi bi-check-lg me-1"></i>Salvar Alterações
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <% }); %>
+            </div>
+
+            <!-- ╔══════════════════════════════════════════════════════╗
+                 ║  TAB 3 — SAQUES                                     ║
+                 ╚══════════════════════════════════════════════════════╝ -->
+            <div class="gw-panel" id="panel-withdraw">
+                <div class="row g-4">
+                    <!-- Left: Balance Summary -->
+                    <div class="col-lg-4">
+                        <div class="wd-summary-card">
+                            <div class="wd-summary-header">
+                                <i class="bi bi-wallet2 me-2 text-success"></i>Saldo para Saque
+                            </div>
+                            <div class="p-4 text-center">
+                                <div class="text-muted mb-1" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">SigiloPay</div>
+                                <div class="wd-big-value" id="wdBalance">
+                                    <div class="gw-shimmer mx-auto" style="height: 2.5rem; width: 70%; background: linear-gradient(90deg, rgba(16,185,129,0.1) 25%, rgba(16,185,129,0.25) 50%, rgba(16,185,129,0.1) 75%); background-size: 200% 100%; animation: gwShimmer 1.5s infinite;"></div>
+                                </div>
+                                <small class="text-muted d-block mt-2">Disponível para saque</small>
+
+                                <hr style="margin: 1.25rem 0; border-color: var(--border-color);">
+
+                                <div class="wd-detail-row">
+                                    <span class="text-muted">Pendente</span>
+                                    <span class="fw-bold" id="wdPending" style="color: #f59e0b;">—</span>
+                                </div>
+                                <div class="wd-detail-row">
+                                    <span class="text-muted">Retido</span>
+                                    <span class="fw-bold" id="wdLocked" style="color: #8b5cf6;">—</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Form -->
+                    <div class="col-lg-8">
+                        <div class="wd-form-card">
+                            <div class="wd-form-header">
+                                <h6 class="mb-0 fw-bold"><i class="bi bi-send-fill me-2" style="color: var(--primary-color);"></i>Solicitar Saque</h6>
+                                <small class="text-muted d-block mt-1">Envie o saldo disponível para a chave PIX desejada</small>
+                            </div>
+                            <div class="p-4">
+                                <!-- PIX Key Type -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold" style="font-size: 0.85rem;">Tipo de Chave PIX</label>
+                                    <div class="pix-type-grid">
+                                        <div class="pix-type-btn sel" data-type="cpf" onclick="pickPix(this)"><i class="bi bi-person-vcard"></i>CPF</div>
+                                        <div class="pix-type-btn" data-type="cnpj" onclick="pickPix(this)"><i class="bi bi-building"></i>CNPJ</div>
+                                        <div class="pix-type-btn" data-type="email" onclick="pickPix(this)"><i class="bi bi-envelope-at"></i>E-mail</div>
+                                        <div class="pix-type-btn" data-type="phone" onclick="pickPix(this)"><i class="bi bi-phone"></i>Telefone</div>
+                                        <div class="pix-type-btn" data-type="random" onclick="pickPix(this)"><i class="bi bi-shuffle"></i>Aleatória</div>
+                                    </div>
+                                </div>
+
+                                <!-- Key + Amount -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium" style="font-size: 0.85rem;">Chave PIX</label>
+                                    <input type="text" class="form-control" id="wdKey" style="border-radius: 10px;" placeholder="000.000.000-00">
+                                </div>
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-medium" style="font-size: 0.85rem;">Valor do Saque (R$)</label>
+                                        <input type="number" class="form-control" id="wdAmount" style="border-radius: 10px;" step="0.01" min="1" placeholder="0,00">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-medium" style="font-size: 0.85rem;">Descrição (opcional)</label>
+                                        <input type="text" class="form-control" id="wdDesc" style="border-radius: 10px;" placeholder="Ex: Saque mensal">
+                                    </div>
+                                </div>
+
+                                <!-- Submit -->
+                                <button class="btn btn-lg w-100" id="wdBtn" onclick="doWithdraw()" style="border-radius: 12px; font-weight: 700; background: linear-gradient(135deg, var(--primary-color), #8b5cf6); color: white; border: none; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3); transition: all 0.3s;">
+                                    <i class="bi bi-send-fill me-2"></i>Solicitar Saque
+                                </button>
+
+                                <div id="wdResult" class="wd-result"></div>
+
+                                <!-- PixGo Note -->
+                                <div class="wd-info-box">
+                                    <div class="d-flex align-items-start gap-2">
+                                        <i class="bi bi-info-circle-fill mt-1" style="color: var(--primary-color);"></i>
+                                        <div>
+                                            <strong style="font-size: 0.85rem;">PixGo — Saques</strong>
+                                            <p class="text-muted mb-0" style="font-size: 0.8rem;">
+                                                O PixGo utiliza <strong>Liquid Wallet</strong> para saldo. Saques devem ser feitos pelo painel em
+                                                <a href="https://pixgo.org" target="_blank" rel="noopener" style="color: var(--primary-color); font-weight: 600;">pixgo.org</a>.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-5"></div>
+        </div>
+
+        <script>
+            // ═══════════════════════════════════════════
+            // Tabs
+            // ═══════════════════════════════════════════
+            function switchTab(id, btn) {
+                document.querySelectorAll('.gw-tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                document.querySelectorAll('.gw-panel').forEach(p => p.classList.remove('active'));
+                const panel = document.getElementById('panel-' + id);
+                if (panel) panel.classList.add('active');
+            }
+
+            // ═══════════════════════════════════════════
+            // Gateway Picker (Config Tab)
+            // ═══════════════════════════════════════════
+            function pickGW(el, gwId) {
+                document.querySelectorAll('.gw-pick').forEach(c => c.classList.remove('sel'));
+                el.classList.add('sel');
+                document.querySelectorAll('.gw-cfg').forEach(f => f.style.display = 'none');
+                const f = document.getElementById('cfg-' + gwId);
+                if (f) { f.style.display = 'block'; f.style.opacity = '0'; requestAnimationFrame(() => { f.style.transition = 'opacity 0.3s'; f.style.opacity = '1'; }); }
+            }
+
+            // ═══════════════════════════════════════════
+            // PIX Key Type Picker (Withdraw Tab)
+            // ═══════════════════════════════════════════
+            let pixType = 'cpf';
+            const PLACEHOLDERS = { cpf: '000.000.000-00', cnpj: '00.000.000/0001-00', email: 'email@exemplo.com', phone: '(11) 99999-9999', random: 'Cole a chave aleatória' };
+            function pickPix(btn) {
+                document.querySelectorAll('.pix-type-btn').forEach(b => b.classList.remove('sel'));
+                btn.classList.add('sel');
+                pixType = btn.dataset.type;
+                document.getElementById('wdKey').placeholder = PLACEHOLDERS[pixType] || '';
+            }
+
+            // ═══════════════════════════════════════════
+            // Balance Fetch (shared: overview + withdraw)
+            // ═══════════════════════════════════════════
+            const fmt = (v) => v == null || isNaN(v) ? '0,00' : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            (async function loadBal() {
+                try {
+                    const r = await fetch('/admin/gateways/sigilopay/balance');
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    const d = await r.json();
+                    if (d.error) throw new Error(d.error);
+
+                    // Overview cards
+                    const setOV = (id, val) => { const el = document.getElementById(id); if (el) el.innerHTML = `<span class="cur">R$</span> ${fmt(val)}`; };
+                    setOV('ovAvailable', d.available);
+                    setOV('ovPending', d.pending);
+                    setOV('ovLocked', d.fundLock);
+
+                    // Withdraw panel
+                    const wBal = document.getElementById('wdBalance');
+                    if (wBal) wBal.innerHTML = `<span style="font-size:1rem;">R$</span> ${fmt(d.available)}`;
+                    const wPend = document.getElementById('wdPending');
+                    if (wPend) wPend.textContent = `R$ ${fmt(d.pending)}`;
+                    const wLock = document.getElementById('wdLocked');
+                    if (wLock) wLock.textContent = `R$ ${fmt(d.fundLock)}`;
+                } catch (e) {
+                    const errHTML = '<span class="gw-error-badge"><i class="bi bi-exclamation-circle"></i> Sem conexão</span>';
+                    ['ovAvailable', 'ovPending', 'ovLocked'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = errHTML; });
+                    const wBal = document.getElementById('wdBalance');
+                    if (wBal) { wBal.style.fontSize = '1rem'; wBal.style.color = 'var(--text-secondary)'; wBal.textContent = 'Sem conexão'; wBal.style.background = 'none'; wBal.style.webkitTextFillColor = 'var(--text-secondary)'; }
+                }
+            })();
+
+            // ═══════════════════════════════════════════
+            // Withdraw
+            // ═══════════════════════════════════════════
+            async function doWithdraw() {
+                const btn = document.getElementById('wdBtn');
+                const res = document.getElementById('wdResult');
+                const amount = document.getElementById('wdAmount').value;
+                const pixKey = document.getElementById('wdKey').value;
+                const desc = document.getElementById('wdDesc').value;
+
+                if (!amount || !pixKey) {
+                    res.className = 'wd-result err'; res.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i>Preencha o valor e a chave PIX'; res.style.display = 'block'; return;
+                }
+
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processando...';
+
+                try {
+                    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                    const csrfInput = document.querySelector('input[name="_csrf"]');
+                    const csrf = csrfMeta?.content || csrfInput?.value || '';
+
+                    const resp = await fetch('/admin/gateways/sigilopay/withdraw', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+                        body: JSON.stringify({ amount, pixKey, pixKeyType: pixType, description: desc })
+                    });
+                    const data = await resp.json();
+                    if (resp.ok && data.success) {
+                        res.className = 'wd-result ok';
+                        res.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>' + (data.message || 'Saque solicitado!');
+                    } else {
+                        throw new Error(data.error || data.details || 'Erro desconhecido');
+                    }
+                } catch (err) {
+                    res.className = 'wd-result err';
+                    res.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2"></i>' + err.message;
+                }
+
+                res.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-send-fill me-2"></i>Solicitar Saque';
+            }
+        </script>
+
+<%- include('../../partials/footer') %>

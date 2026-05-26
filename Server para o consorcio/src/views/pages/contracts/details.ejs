@@ -1,0 +1,473 @@
+<%- include('../../partials/header') %>
+
+    <%- include('../../partials/sidebar', { path: '/contracts' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title">Detalhes do Contrato</h1>
+                    <p class="text-muted mb-0">
+                        <code>#<%= contract.id.substring(0, 8) %></code> •
+                        <span><%= contract.user.name %></span>
+                    </p>
+                </div>
+                <div class="top-bar-actions">
+                    <a href="/admin/contracts" class="btn btn-outline-secondary" style="border-radius: 10px;">
+                        <i class="bi bi-arrow-left me-2"></i>Voltar
+                    </a>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="bi bi-moon-stars" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            <% if (typeof success_msg !=='undefined' && success_msg && success_msg.length> 0) { %>
+                <div class="alert alert-success alert-dismissible fade show shadow-sm border-0" role="alert" style="border-radius: 12px;">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <%= success_msg %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+
+            <!-- Summary Cards -->
+            <div class="row g-4 mb-5">
+                <div class="col-md-4">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Valor do Crédito</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: #10b981;">
+                                    <span style="font-size: 1rem;">R$</span>
+                                    <%= Number(contract.creditValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                </div>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                                <i class="bi bi-cash-stack"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Saldo Devedor</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: #f59e0b;">
+                                    <span style="font-size: 1rem;">R$</span>
+                                    <%= Number(contract.balanceDue).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                </div>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                                <i class="bi bi-exclamation-circle-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Progresso</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: var(--primary-color);">
+                                    <%= stats.progress %>%
+                                </div>
+                                <small class="text-muted mt-2 d-block">
+                                    <%= stats.paidInstallments %>/<%= contract.totalInstallments %> parcelas
+                                </small>
+                            </div>
+                            <div class="position-relative" style="width: 60px; height: 60px;">
+                                <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-90deg);">
+                                    <circle cx="18" cy="18" r="16" fill="none" stroke="var(--border-color)" stroke-width="3"></circle>
+                                    <circle cx="18" cy="18" r="16" fill="none" stroke="var(--primary-color)"
+                                        stroke-width="3" stroke-dasharray="<%= stats.progress %>, 100"
+                                        stroke-linecap="round"></circle>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <!-- Left Column: Contract Info & Installments -->
+                <div class="col-md-8">
+                    <!-- Contract Information -->
+                    <div class="premium-info-card mb-4">
+                        <div class="card-header-premium">
+                            <i class="bi bi-info-circle me-2 text-primary"></i>
+                            Informações do Contrato
+                        </div>
+                        <div class="p-4">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="p-3 rounded" style="background: var(--bg-secondary);">
+                                        <small class="text-muted d-block mb-1">Cliente</small>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700;">
+                                                <%= contract.user.name.charAt(0).toUpperCase() %>
+                                            </div>
+                                            <div>
+                                                <strong><%= contract.user.name %></strong>
+                                                <br><small class="text-muted">
+                                                    <%= contract.user.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') %>
+                                                </small>
+                                            </div>
+                                        </div>
+                                        <a href="/admin/clients/<%= contract.user.id %>"
+                                            class="btn btn-sm btn-outline-primary w-100 mt-2" style="border-radius: 8px;">
+                                            <i class="bi bi-person me-1"></i>Ver Perfil
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="p-3 rounded" style="background: var(--bg-secondary);">
+                                        <small class="text-muted d-block mb-1">Produto</small>
+                                        <strong class="d-block"><%= contract.plan.product.name %></strong>
+                                        <small class="text-muted"><%= contract.plan.name %></small>
+                                        <div class="mt-2">
+                                            <span class="badge-premium" style="background: rgba(108, 117, 125, 0.1); color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.2);">G:<%= contract.groupNumber || '-' %></span>
+                                            <span class="badge-premium ms-1" style="background: rgba(108, 117, 125, 0.1); color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.2);">C:<%= contract.quotaNumber || '-' %></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="p-3 rounded" style="background: var(--bg-secondary);">
+                                        <small class="text-muted d-block mb-1">Status</small>
+                                        <% if (contract.status==='ACTIVE') { %>
+                                            <span class="badge-premium" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2);"><i class="bi bi-check-circle-fill"></i>Ativo</span>
+                                        <% } else if (contract.status==='PENDING') { %>
+                                            <span class="badge-premium" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2);"><i class="bi bi-clock-fill"></i>Pendente</span>
+                                        <% } else if (contract.status==='CONTEMPLATED') { %>
+                                            <span class="badge-premium" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.2);"><i class="bi bi-trophy-fill"></i>Contemplado</span>
+                                        <% } else if (contract.status==='CANCELLED') { %>
+                                            <span class="badge-premium" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);"><i class="bi bi-x-circle-fill"></i>Cancelado</span>
+                                        <% } else if (contract.status==='PENDING_KYC') { %>
+                                            <span class="badge-premium" style="background: rgba(245, 158, 11, 0.1); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2);"><i class="bi bi-person-check"></i>Aguardando KYC</span>
+                                        <% } %>
+                                        <% if (contract.contemplated) { %>
+                                            <br><small class="text-muted mt-1 d-block">
+                                                <i class="bi bi-trophy-fill text-warning me-1"></i>
+                                                Contemplado em <%= new Date(contract.contemplationDate).toLocaleDateString('pt-BR') %>
+                                            </small>
+                                        <% } %>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="p-3 rounded" style="background: var(--bg-secondary);">
+                                        <small class="text-muted d-block mb-1">Data de Criação</small>
+                                        <strong><%= new Date(contract.createdAt).toLocaleDateString('pt-BR') %></strong>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="p-3 rounded" style="background: var(--bg-secondary);">
+                                        <small class="text-muted d-block mb-1">Última Atualização</small>
+                                        <strong><%= new Date(contract.updatedAt).toLocaleDateString('pt-BR') %></strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Installments -->
+                    <div class="premium-info-card mb-4">
+                        <div class="card-header-premium d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-list-check me-2 text-primary"></i>
+                                Cronograma de Parcelas
+                            </div>
+                            <div class="btn-group btn-group-sm shadow-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary active"
+                                    onclick="filterInstallments('all')">Todas</button>
+                                <button type="button" class="btn btn-outline-success"
+                                    onclick="filterInstallments('PAID')">Pagas</button>
+                                <button type="button" class="btn btn-outline-warning"
+                                    onclick="filterInstallments('PENDING')">Pendentes</button>
+                                <button type="button" class="btn btn-outline-danger"
+                                    onclick="filterInstallments('OVERDUE')">Atrasadas</button>
+                            </div>
+                        </div>
+                        <div class="p-0">
+                            <div class="table-responsive">
+                                <table class="table table-custom align-middle" id="installmentsTable">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 60px;">#</th>
+                                            <th>Vencimento</th>
+                                            <th>Valor</th>
+                                            <th>Status</th>
+                                            <th>Pagamento</th>
+                                            <th class="text-center" style="width: 100px;">Ação</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% contract.installments.forEach(inst => {
+                                            const isOverdue = inst.status === 'PENDING' && new Date(inst.dueDate) < new Date(); %>
+                                            <tr data-status="<%= inst.status %>">
+                                                <td>
+                                                    <% if (inst.number === 1) { %>
+                                                        <span class="badge-premium" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2);">Adesão</span>
+                                                    <% } else { %>
+                                                        <strong><%= inst.number %></strong>
+                                                    <% } %>
+                                                </td>
+                                                <td><%= new Date(inst.dueDate).toLocaleDateString('pt-BR') %></td>
+                                                <td>
+                                                    <strong>R$ <%= Number(inst.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %></strong>
+                                                </td>
+                                                <td>
+                                                    <% if (inst.status === 'PAID') { %>
+                                                        <span class="badge-premium" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2);"><i class="bi bi-check-circle-fill"></i>Pago</span>
+                                                    <% } else if (inst.status === 'OVERDUE' || isOverdue) { %>
+                                                        <span class="badge-premium" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);"><i class="bi bi-exclamation-circle-fill"></i>Atrasado</span>
+                                                    <% } else if (inst.status === 'PENDING') { %>
+                                                        <span class="badge-premium" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2);"><i class="bi bi-clock-fill"></i>Pendente</span>
+                                                    <% } else if (inst.status === 'CANCELLED') { %>
+                                                        <span class="badge-premium" style="background: rgba(108, 117, 125, 0.1); color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.2);"><i class="bi bi-x-circle-fill"></i>Cancelado</span>
+                                                    <% } else if (inst.status === 'REFUNDED') { %>
+                                                        <span class="badge-premium" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2);"><i class="bi bi-arrow-return-left"></i>Reembolsado</span>
+                                                    <% } %>
+                                                </td>
+                                                <td>
+                                                    <% if (inst.status === 'PAID') { %>
+                                                        <small class="text-muted">
+                                                            <%= inst.paymentDate ? new Date(inst.paymentDate).toLocaleDateString('pt-BR') : '-' %>
+                                                            <% if (inst.paymentMethod) { %>
+                                                                <br><span class="badge-premium" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2); font-size: 0.7rem;">
+                                                                    <%= inst.paymentMethod %>
+                                                                </span>
+                                                            <% } %>
+                                                        </small>
+                                                    <% } else { %>
+                                                        <small class="text-muted">-</small>
+                                                    <% } %>
+                                                </td>
+                                                <td class="text-center">
+                                                    <% if (inst.status !== 'PAID' && inst.status !== 'CANCELLED' && inst.status !== 'REFUNDED') { %>
+                                                        <% if (['MASTER', 'MANAGER'].includes(user.role)) { %>
+                                                        <button type="button" class="btn btn-sm btn-success" style="border-radius: 8px;"
+                                                            onclick="new bootstrap.Modal(document.getElementById('markPaidModal')).show(); document.getElementById('installmentNumber').textContent = '<%= inst.number %>'; document.getElementById('markPaidForm').action = '/admin/payments/<%= inst.id %>/mark-paid';"
+                                                            title="Marcar como Pago">
+                                                            <i class="bi bi-check2"></i>
+                                                        </button>
+                                                        <% } %>
+                                                    <% } else if (inst.status === 'PAID') { %>
+                                                        <i class="bi bi-check-circle-fill text-success"></i>
+                                                    <% } %>
+                                                </td>
+                                            </tr>
+                                        <% }); %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Actions & Bids -->
+                <div class="col-md-4">
+                    <!-- Actions -->
+                    <div class="premium-info-card mb-4">
+                        <div class="card-header-premium">
+                            <i class="bi bi-gear me-2 text-primary"></i>
+                            Ações Rápidas
+                        </div>
+                        <div class="p-4">
+                            <% if (['MASTER', 'MANAGER'].includes(user.role)) { %>
+                            <% if (!contract.contemplated && contract.status==='ACTIVE') { %>
+                                <button type="button" class="btn btn-primary w-100 mb-3" style="border-radius: 10px;"
+                                    onclick="new bootstrap.Modal(document.getElementById('contemplateModal')).show()">
+                                    <i class="bi bi-trophy me-2"></i>Contemplar Contrato
+                                </button>
+                            <% } %>
+
+                            <% if (contract.status==='ACTIVE') { %>
+                                <button type="button" class="btn btn-outline-danger w-100 mb-3" style="border-radius: 10px;"
+                                    onclick="new bootstrap.Modal(document.getElementById('cancelModal')).show()">
+                                    <i class="bi bi-x-circle me-2"></i>Cancelar Contrato
+                                </button>
+                            <% } %>
+                            <% } %>
+
+                            <a href="/admin/clients/<%= contract.user.id %>"
+                                class="btn btn-outline-secondary w-100 mb-3" style="border-radius: 10px;">
+                                <i class="bi bi-person me-2"></i>Ver Cliente
+                            </a>
+
+                            <a href="/admin/payments" class="btn btn-outline-primary w-100" style="border-radius: 10px;">
+                                <i class="bi bi-cash-coin me-2"></i>Gerenciar Pagamentos
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Bids -->
+                    <div class="premium-info-card">
+                        <div class="card-header-premium d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-lightning me-2 text-primary"></i>
+                                Lances
+                            </div>
+                            <span class="badge-premium" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color); border: 1px solid rgba(99, 102, 241, 0.2);">
+                                <%= contract.bids.length %>
+                            </span>
+                        </div>
+                        <div class="p-4">
+                            <% if (contract.bids.length > 0) { %>
+                                <div class="list-group list-group-flush">
+                                    <% contract.bids.forEach(bid => { %>
+                                        <div class="list-group-item px-0" style="background: transparent; border-color: var(--border-color);">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <div>
+                                                    <strong class="d-block" style="color: #10b981;">
+                                                        R$ <%= Number(bid.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                                    </strong>
+                                                    <small class="text-muted">
+                                                        <%= Number(bid.percentage) %>% do crédito
+                                                    </small>
+                                                </div>
+                                                <% if (bid.status === 'PENDING') { %>
+                                                    <span class="badge-premium" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); font-size: 0.7rem;">Pendente</span>
+                                                <% } else if (bid.status === 'APPROVED') { %>
+                                                    <span class="badge-premium" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); font-size: 0.7rem;">Aprovado</span>
+                                                <% } else if (bid.status === 'CONTEMPLATED') { %>
+                                                    <span class="badge-premium" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.2); font-size: 0.7rem;"><i class="bi bi-trophy-fill"></i>Vencedor</span>
+                                                <% } else if (bid.status === 'REJECTED') { %>
+                                                    <span class="badge-premium" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 0.7rem;">Rejeitado</span>
+                                                <% } %>
+                                            </div>
+                                            <small class="text-muted">
+                                                <i class="bi bi-calendar3 me-1"></i>
+                                                <%= new Date(bid.createdAt).toLocaleDateString('pt-BR') %>
+                                            </small>
+                                            <% if (bid.isWinner) { %>
+                                                <div class="mt-2">
+                                                    <i class="bi bi-trophy-fill text-warning me-1"></i>
+                                                    <small class="text-warning fw-bold">Lance Contemplado!</small>
+                                                </div>
+                                            <% } %>
+                                        </div>
+                                    <% }); %>
+                                </div>
+                                <a href="/admin/bids?contract=<%= contract.id %>"
+                                    class="btn btn-sm btn-outline-primary w-100 mt-3" style="border-radius: 8px;">
+                                    Ver Todos os Lances
+                                </a>
+                            <% } else { %>
+                                <div class="text-center py-4">
+                                    <i class="bi bi-lightning" style="font-size: 2.5rem; opacity: 0.15;"></i>
+                                    <p class="text-muted small mt-2 mb-0">Nenhum lance registrado</p>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-5"></div>
+        </div>
+
+        <!-- Modal Mark as Paid -->
+        <div class="modal fade" id="markPaidModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content modal-content-premium">
+                    <div class="modal-header modal-header-premium py-3 px-4" style="background: rgba(16, 185, 129, 0.1);">
+                        <h5 class="modal-title fw-bold" style="color: #10b981;"><i class="bi bi-check-circle-fill me-2"></i>Registrar Pagamento</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="markPaidForm" method="POST">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <div class="modal-body p-4">
+                            <p>Parcela #<span id="installmentNumber"></span></p>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Método de Pagamento *</label>
+                                <select name="paymentMethod" class="form-select" required style="border-radius: 10px;">
+                                    <option value="">Selecione...</option>
+                                    <option value="PIX">PIX</option>
+                                    <option value="BOLETO">Boleto</option>
+                                    <option value="CARTAO">Cartão de Crédito</option>
+                                    <option value="DINHEIRO">Dinheiro</option>
+                                    <option value="TRANSFERENCIA">Transferência</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Data do Pagamento *</label>
+                                <input type="date" name="paymentDate" class="form-control" required style="border-radius: 10px;">
+                            </div>
+                        </div>
+                        <div class="modal-footer modal-footer-premium py-3 px-4" style="background: var(--bg-secondary);">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px;">Cancelar</button>
+                            <button type="submit" class="btn btn-success" style="border-radius: 8px;">Confirmar Pagamento</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Contemplate -->
+        <div class="modal fade" id="contemplateModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content modal-content-premium">
+                    <div class="modal-header modal-header-premium py-3 px-4" style="background: rgba(139, 92, 246, 0.1);">
+                        <h5 class="modal-title fw-bold" style="color: #8b5cf6;"><i class="bi bi-trophy-fill me-2"></i>Contemplar Contrato</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form action="/admin/contracts/<%= contract.id %>/contemplate" method="POST">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <div class="modal-body p-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Tipo de Contemplação *</label>
+                                <select name="contemplationType" class="form-select" required style="border-radius: 10px;">
+                                    <option value="BID">Por Lance</option>
+                                    <option value="DRAW">Por Sorteio</option>
+                                    <option value="DIRECT">Contemplação Direta</option>
+                                </select>
+                            </div>
+                            <div class="alert alert-warning border-0 shadow-sm" style="border-radius: 10px; background: rgba(245, 158, 11, 0.1); color: #92400e;">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                Esta ação não pode ser desfeita!
+                            </div>
+                        </div>
+                        <div class="modal-footer modal-footer-premium py-3 px-4" style="background: var(--bg-secondary);">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px;">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" style="border-radius: 8px;">Confirmar Contemplação</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Cancel -->
+        <div class="modal fade" id="cancelModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content modal-content-premium">
+                    <div class="modal-header modal-header-premium py-3 px-4" style="background: rgba(239, 68, 68, 0.1);">
+                        <h5 class="modal-title fw-bold text-danger"><i class="bi bi-x-circle-fill me-2"></i>Cancelar Contrato</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form action="/admin/contracts/<%= contract.id %>/cancel" method="POST">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <div class="modal-body p-4">
+                            <p>Tem certeza que deseja cancelar este contrato?</p>
+                            <div class="alert alert-danger border-0 shadow-sm" style="border-radius: 10px; background: rgba(239, 68, 68, 0.1); color: #b91c1c;">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                O contrato será cancelado permanentemente e todas as parcelas pendentes serão canceladas.
+                            </div>
+                        </div>
+                        <div class="modal-footer modal-footer-premium py-3 px-4" style="background: var(--bg-secondary);">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px;">Não, voltar</button>
+                            <button type="submit" class="btn btn-danger" style="border-radius: 8px;">Sim, cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+<%- include('../../partials/footer') %>

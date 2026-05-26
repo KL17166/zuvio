@@ -1,0 +1,464 @@
+<%- include('../../partials/header') %>
+
+    <%- include('../../partials/sidebar', { path: '/products' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title">Gestão de Produtos</h1>
+                    <p class="text-muted mb-0">Motos, Carros, Cartas de Crédito, Eletrônicos e mais</p>
+                </div>
+                <div class="top-bar-actions">
+                    <!-- View Toggle -->
+                    <div class="btn-group shadow-sm me-2" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-primary active" id="btnTableView" onclick="setView('table')" title="Tabela">
+                            <i class="bi bi-list-ul"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="btnCardsView" onclick="setView('cards')" title="Cards">
+                            <i class="bi bi-grid-3x3-gap"></i>
+                        </button>
+                    </div>
+                    <a href="/admin/products/new" class="btn btn-primary shadow-sm" style="border-radius: 10px;">
+                        <i class="bi bi-plus-lg me-2"></i>Novo Produto
+                    </a>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="bi bi-moon-stars" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            <% if (typeof success_msg !=='undefined' && success_msg && success_msg.length> 0) { %>
+                <div class="alert alert-success alert-dismissible fade show shadow-sm border-0" role="alert" style="border-radius: 12px;">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <%= success_msg %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+
+            <% if (typeof error_msg !=='undefined' && error_msg && error_msg.length> 0) { %>
+                <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0" role="alert" style="border-radius: 12px;">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <%= error_msg %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+
+            <!-- Stats Cards -->
+            <%
+            const totalProducts = products.length;
+            const activeProducts = products.filter(p => p.active).length;
+            const inactiveProducts = totalProducts - activeProducts;
+            const totalMotos = products.filter(p => p.type === 'MOTO').length;
+            %>
+
+            <div class="row g-4 mb-5">
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Total de Produtos</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: var(--primary-color);"><%= totalProducts %></div>
+                                <small class="text-muted mt-2 d-block">Cadastrados no sistema</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">
+                                <i class="bi bi-box-seam-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Produtos Ativos</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: #10b981;"><%= activeProducts %></div>
+                                <small class="text-muted mt-2 d-block">Disponíveis para venda</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Produtos Inativos</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: #f59e0b;"><%= inactiveProducts %></div>
+                                <small class="text-muted mt-2 d-block">Não visíveis no app</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                                <i class="bi bi-pause-circle-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Total de Motos</div>
+                                <div style="font-size: 2.2rem; font-weight: 800; line-height: 1; color: #3b82f6;"><%= totalMotos %></div>
+                                <small class="text-muted mt-2 d-block">Categoria principal</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+                                <i class="bi bi-bicycle"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Type Filter -->
+            <div class="mb-4">
+                <div class="btn-group shadow-sm" role="group">
+                    <a href="/admin/products" class="btn btn-sm <%= !typeFilter ? 'btn-primary' : 'btn-outline-primary' %>" style="border-radius: 8px 0 0 8px;">Todos</a>
+                    <a href="/admin/products?type=MOTO" class="btn btn-sm <%= typeFilter === 'MOTO' ? 'btn-primary' : 'btn-outline-primary' %>">🏍️ Motos</a>
+                    <a href="/admin/products?type=CARRO" class="btn btn-sm <%= typeFilter === 'CARRO' ? 'btn-primary' : 'btn-outline-primary' %>">🚗 Carros</a>
+                    <a href="/admin/products?type=CARTA_CREDITO" class="btn btn-sm <%= typeFilter === 'CARTA_CREDITO' ? 'btn-primary' : 'btn-outline-primary' %>">💳 Cartas</a>
+                    <a href="/admin/products?type=ELETRONICO" class="btn btn-sm <%= typeFilter === 'ELETRONICO' ? 'btn-primary' : 'btn-outline-primary' %>">💻 Eletrônicos</a>
+                    <a href="/admin/products?type=IMOVEL" class="btn btn-sm <%= typeFilter === 'IMOVEL' ? 'btn-primary' : 'btn-outline-primary' %>">🏠 Imóveis</a>
+                    <a href="/admin/products?type=SERVICO" class="btn btn-sm <%= typeFilter === 'SERVICO' ? 'btn-primary' : 'btn-outline-primary' %>" style="border-radius: 0 8px 8px 0;">✈️ Serviços</a>
+                </div>
+            </div>
+
+            <!-- SHARED HEADER -->
+            <div class="premium-info-card mb-4">
+                <div class="card-header-premium d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-box-seam text-primary me-2"></i>
+                        Catálogo (<%= products.length %>)
+                    </h5>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="text-muted small mb-0" style="white-space: nowrap;">Exibir</label>
+                            <select id="sharedPerPage" class="form-select form-select-sm" style="width: auto; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color);">
+                                <option value="12">12</option>
+                                <option value="25" selected>25</option>
+                                <option value="50">50</option>
+                                <option value="-1">Todos</option>
+                            </select>
+                            <label class="text-muted small mb-0" style="white-space: nowrap;">resultados por página</label>
+                        </div>
+                        <div class="position-relative" style="width: 220px;">
+                            <i class="bi bi-search position-absolute" style="left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary);"></i>
+                            <input type="text" id="sharedSearch" class="form-control form-control-sm" placeholder="Buscar registros"
+                                style="padding-left: 36px; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color);">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABLE VIEW -->
+            <div class="products-view" id="tableView">
+                <div class="premium-table-container mb-4">
+                    <% if (products && products.length > 0) { %>
+                        <div class="p-0">
+                            <div class="table-responsive">
+                                <table class="table table-custom align-middle w-100" id="productsTable">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 40%">Produto / Detalhes</th>
+                                            <th>Valores & Prazos</th>
+                                            <th>Categoria</th>
+                                            <th>Status</th>
+                                            <th class="text-end">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% products.forEach(product => { %>
+                                            <tr>
+                                                <td>
+                                                    <div class="d-flex align-items-start">
+                                                        <% if(product.imageUrl) { %>
+                                                            <img src="<%= product.imageUrl %>" alt="" class="rounded-3 me-3 shadow-sm"
+                                                                style="width: 60px; height: 60px; object-fit: cover;">
+                                                        <% } else { %>
+                                                            <div class="rounded-3 me-3 d-flex align-items-center justify-content-center shadow-sm"
+                                                                style="width: 60px; height: 60px; background: var(--bg-secondary);">
+                                                                <i class="bi bi-card-image text-muted" style="font-size: 1.2rem;"></i>
+                                                            </div>
+                                                        <% } %>
+                                                        <div>
+                                                            <div class="fw-bold text-dark"><%= product.name %></div>
+                                                            <div class="small text-muted">
+                                                                <% if(product.brand) { %> <%= product.brand %> <% } %>
+                                                                <% if(product.model) { %> • <%= product.model %> <% } %>
+                                                                <% if(product.year) { %> • <%= product.year %> <% } %>
+                                                            </div>
+                                                            <div class="small text-muted mt-1">
+                                                                <% if(product.type === 'MOTO' && product.specs?.displacement) { %>
+                                                                    <span class="badge-premium" style="background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-color); font-size: 0.7rem;"><%= product.specs.displacement %></span>
+                                                                <% } %>
+                                                                <% if(product.type === 'CARRO' && product.specs?.motor) { %>
+                                                                    <span class="badge-premium" style="background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-color); font-size: 0.7rem;"><%= product.specs.motor %></span>
+                                                                <% } %>
+                                                                <% if(product.type === 'ELETRONICO' && product.specs?.processador) { %>
+                                                                    <span class="badge-premium" style="background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-color); font-size: 0.7rem;"><%= product.specs.processador %></span>
+                                                                <% } %>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="fw-bold" style="color: var(--success-color);">
+                                                        R$ <%= Number(product.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                                    </div>
+                                                    <div class="small text-muted mt-1">
+                                                        <i class="bi bi-clock me-1"></i>
+                                                        <%= product.minDuration || 12 %> a <%= product.maxDuration || 60 %> meses
+                                                    </div>
+                                                    <div class="small text-muted">
+                                                        Taxa: <%= product.adminFeeRate || 15 %>%
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <% const typeLabels = { MOTO: '🏍️ Moto', CARRO: '🚗 Carro', CARTA_CREDITO: '💳 Carta', ELETRONICO: '💻 Eletrônico', IMOVEL: '🏠 Imóvel', SERVICO: '✈️ Serviço' }; %>
+                                                    <span class="badge-premium" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color); border: 1px solid rgba(99, 102, 241, 0.2);">
+                                                        <%= typeLabels[product.type] || product.type %>
+                                                    </span>
+                                                    <div class="small text-muted mt-1"><%= product.category %></div>
+                                                </td>
+                                                <td>
+                                                    <% if(product.active) { %>
+                                                        <span class="badge-premium" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2);"><i class="bi bi-check-circle-fill"></i>Ativo</span>
+                                                    <% } else { %>
+                                                        <span class="badge-premium" style="background: rgba(108, 117, 125, 0.1); color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.2);"><i class="bi bi-pause-circle-fill"></i>Inativo</span>
+                                                    <% } %>
+                                                </td>
+                                                <td class="text-end">
+                                                    <div class="d-flex justify-content-end gap-2">
+                                                        <a href="/admin/products/<%= product.id %>/edit" class="btn btn-sm btn-outline-primary" style="border-radius: 8px;" title="Editar">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </a>
+                                                        <button type="button" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;"
+                                                            onclick="deleteProduct('<%= product.id %>', this.dataset.name)" data-name="<%= product.name %>" title="Excluir">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <% }); %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    <% } else { %>
+                        <div class="text-center py-5">
+                            <div class="mb-4 d-inline-block p-4 rounded-circle" style="background: rgba(99, 102, 241, 0.1);">
+                                <i class="bi bi-box-seam text-primary" style="font-size: 3rem;"></i>
+                            </div>
+                            <h5 class="text-dark fw-bold">Nenhum produto cadastrado</h5>
+                            <p class="text-muted mb-3">Adicione o primeiro produto ao catálogo.</p>
+                            <a href="/admin/products/new" class="btn btn-primary mt-2" style="border-radius: 10px;">
+                                <i class="bi bi-plus-lg me-2"></i>Adicionar Primeiro Produto
+                            </a>
+                        </div>
+                    <% } %>
+                </div>
+                <!-- Table Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-3 px-1" id="productsTablePagination" style="display: none;">
+                    <small class="text-muted" id="productsTableInfo"></small>
+                    <nav><ul class="pagination pagination-sm mb-0" id="productsTablePager"></ul></nav>
+                </div>
+            </div>
+
+            <!-- CARDS VIEW -->
+            <div class="products-view" id="cardsView" style="display: none;">
+                <% if (products && products.length > 0) { %>
+                    <div class="row g-4" id="productsCardsGrid">
+                        <% products.forEach(product => { %>
+                            <div class="col-md-4 col-lg-3">
+                                <div class="premium-stat-card h-100" style="overflow: hidden;">
+                                    <!-- Product Image -->
+                                    <% if(product.imageUrl) { %>
+                                        <div style="height: 160px; overflow: hidden; border-bottom: 1px solid var(--border-color);">
+                                            <img src="<%= product.imageUrl %>" alt="<%= product.name %>" style="width: 100%; height: 100%; object-fit: cover;">
+                                        </div>
+                                    <% } else { %>
+                                        <div style="height: 120px; background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary)); display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--border-color);">
+                                            <i class="bi bi-box-seam" style="font-size: 3rem; opacity: 0.15;"></i>
+                                        </div>
+                                    <% } %>
+
+                                    <div class="p-3">
+                                        <!-- Status Badge (top-right) -->
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div>
+                                                <% const typeLabelsCard = { MOTO: '🏍️ Moto', CARRO: '🚗 Carro', CARTA_CREDITO: '💳 Carta', ELETRONICO: '💻 Eletrônico', IMOVEL: '🏠 Imóvel', SERVICO: '✈️ Serviço' }; %>
+                                                <span class="badge-premium" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color); border: 1px solid rgba(99, 102, 241, 0.2); font-size: 0.7rem;">
+                                                    <%= typeLabelsCard[product.type] || product.type %>
+                                                </span>
+                                            </div>
+                                            <% if(product.active) { %>
+                                                <span class="badge-premium" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); font-size: 0.7rem;"><i class="bi bi-check-circle-fill"></i>Ativo</span>
+                                            <% } else { %>
+                                                <span class="badge-premium" style="background: rgba(108, 117, 125, 0.1); color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.2); font-size: 0.7rem;"><i class="bi bi-pause-circle-fill"></i>Inativo</span>
+                                            <% } %>
+                                        </div>
+
+                                        <!-- Name & Details -->
+                                        <h6 class="fw-bold mb-1" style="font-size: 0.95rem;"><%= product.name %></h6>
+                                        <div class="small text-muted mb-2">
+                                            <% if(product.brand) { %><%= product.brand %><% } %>
+                                            <% if(product.model) { %> • <%= product.model %><% } %>
+                                            <% if(product.year) { %> • <%= product.year %><% } %>
+                                        </div>
+
+                                        <!-- Price -->
+                                        <div class="mb-2">
+                                            <div class="info-label">Crédito</div>
+                                            <div class="fw-bold" style="font-size: 1.2rem; color: var(--success-color);">
+                                                R$ <%= Number(product.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                            </div>
+                                        </div>
+
+                                        <!-- Duration & Fee -->
+                                        <div class="d-flex gap-3 mb-3">
+                                            <div>
+                                                <div class="info-label">Prazo</div>
+                                                <div class="small fw-semibold"><%= product.minDuration || 12 %> – <%= product.maxDuration || 60 %> meses</div>
+                                            </div>
+                                            <div>
+                                                <div class="info-label">Taxa</div>
+                                                <div class="small fw-semibold"><%= product.adminFeeRate || 15 %>%</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Actions -->
+                                        <div class="d-flex gap-2">
+                                            <a href="/admin/products/<%= product.id %>/edit" class="btn btn-sm btn-outline-primary flex-1" style="border-radius: 8px;">
+                                                <i class="bi bi-pencil me-1"></i>Editar
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;"
+                                                onclick="deleteProduct('<%= product.id %>', '<%= product.name %>')" title="Excluir">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-5">
+                        <div class="mb-4 d-inline-block p-4 rounded-circle" style="background: rgba(99, 102, 241, 0.1);">
+                            <i class="bi bi-box-seam text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="text-dark fw-bold">Nenhum produto cadastrado</h5>
+                        <p class="text-muted mb-3">Adicione o primeiro produto ao catálogo.</p>
+                        <a href="/admin/products/new" class="btn btn-primary mt-2" style="border-radius: 10px;">
+                            <i class="bi bi-plus-lg me-2"></i>Adicionar Primeiro Produto
+                        </a>
+                    </div>
+                <% } %>
+                <!-- Cards Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-3 px-1" id="productsCardsPagination" style="display: none;">
+                    <small class="text-muted" id="productsCardsInfo"></small>
+                    <nav><ul class="pagination pagination-sm mb-0" id="productsCardsPager"></ul></nav>
+                </div>
+            </div>
+
+            <div class="mb-5"></div>
+        </div>
+
+        <!-- Delete Modal -->
+        <div class="modal fade" id="deleteModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content modal-content-premium">
+                    <div class="modal-header modal-header-premium py-3 px-4" style="background: rgba(239, 68, 68, 0.1);">
+                        <h5 class="modal-title fw-bold text-danger"><i class="bi bi-trash-fill me-2"></i>Excluir Produto</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="deleteForm" method="POST" class="m-0">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <div class="modal-body p-4">
+                            <p class="mb-4">Tem certeza que deseja excluir o produto <strong id="deleteName" class="text-dark"></strong>?</p>
+                            <div class="alert alert-danger border-0 shadow-sm" style="border-radius: 10px; background: rgba(239, 68, 68, 0.1); color: #b91c1c;">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                Esta ação não pode ser desfeita! Todos os planos vinculados também serão excluídos.
+                            </div>
+                        </div>
+                        <div class="modal-footer modal-footer-premium py-3 px-4" style="background: var(--bg-secondary);">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px;">Cancelar</button>
+                            <button type="submit" class="btn btn-danger" style="border-radius: 8px;">Sim, excluir</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // ═══════════════════════════════════════════
+            // Product Search Logic
+            // ═══════════════════════════════════════════
+            document.addEventListener('DOMContentLoaded', () => {
+                const searchInput = document.getElementById('sharedSearch');
+                if (searchInput) {
+                    searchInput.addEventListener('input', function(e) {
+                        const term = e.target.value.toLowerCase();
+                        
+                        // Filter Table View
+                        const tableRows = document.querySelectorAll('#productsTable tbody tr');
+                        tableRows.forEach(row => {
+                            const text = row.textContent.toLowerCase();
+                            row.style.display = text.includes(term) ? '' : 'none';
+                        });
+
+                        // Filter Cards View
+                        const cards = document.querySelectorAll('#productsCardsGrid > div');
+                        cards.forEach(card => {
+                            const text = card.textContent.toLowerCase();
+                            card.style.display = text.includes(term) ? '' : 'none';
+                        });
+                    });
+                }
+            });
+
+            // ═══════════════════════════════════════════
+            // View Toggle Logic
+            // ═══════════════════════════════════════════
+            function setView(view) {
+                const btnTable = document.getElementById('btnTableView');
+                const btnCards = document.getElementById('btnCardsView');
+                const tbl = document.getElementById('tableView');
+                const crd = document.getElementById('cardsView');
+
+                if (view === 'table') {
+                    btnTable.classList.add('active');
+                    btnCards.classList.remove('active');
+                    tbl.style.display = 'block';
+                    crd.style.display = 'none';
+                    localStorage.setItem('productsPrefView', 'table');
+                } else {
+                    btnCards.classList.add('active');
+                    btnTable.classList.remove('active');
+                    crd.style.display = 'block';
+                    tbl.style.display = 'none';
+                    localStorage.setItem('productsPrefView', 'cards');
+                }
+            }
+
+            // Load persisted view
+            document.addEventListener('DOMContentLoaded', () => {
+                const p = localStorage.getItem('productsPrefView');
+                if (p === 'cards') setView('cards');
+            });
+
+            // ═══════════════════════════════════════════
+            // Delete Modal Logic
+            // ═══════════════════════════════════════════
+            function deleteProduct(id, name) {
+                document.getElementById('deleteName').textContent = name || 'este produto';
+                document.getElementById('deleteForm').action = '/admin/products/' + id + '/delete';
+                var dm = new bootstrap.Modal(document.getElementById('deleteModal'));
+                dm.show();
+            }
+        </script>
+<%- include('../../partials/footer') %>

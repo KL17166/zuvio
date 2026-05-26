@@ -1,0 +1,225 @@
+<%- include('../../partials/header') %>
+
+    <%- include('../../partials/sidebar', { path: '/products' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title">
+                        <%= editing ? 'Editar Produto' : 'Novo Produto' %>
+                    </h1>
+                    <p class="text-muted mb-0">
+                        <%= editing ? 'Atualize as informações do produto' : 'Adicione um novo produto ao catálogo' %>
+                    </p>
+                </div>
+                <div class="top-bar-actions">
+                    <a href="/admin/products" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-2"></i>Voltar
+                    </a>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="bi bi-moon-stars" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            <% if (typeof error_msg !=='undefined' && error_msg && error_msg.length> 0) { %>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <%= error_msg %>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <% } %>
+
+                    <!-- Form Container -->
+                    <div class="table-container">
+                        <form id="productForm"
+                            action="<%= editing ? '/admin/products/' + product.id + '/edit' : '/admin/products/new' %>"
+                            method="POST">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+                            <!-- Informações Básicas Card -->
+                            <div class="card mb-4 shadow-sm">
+                                <div class="card-header bg-white py-3">
+                                    <h5 class="mb-0 fw-bold">
+                                        <i class="bi bi-info-circle text-primary me-2"></i>
+                                        Informações Básicas
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-5">
+                                            <label class="form-label fw-semibold">Nome do Produto *</label>
+                                            <input type="text" name="name" class="form-control" value="<%= product.name || '' %>" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-semibold">Preço (R$) *</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">R$</span>
+                                                <input type="number" step="0.01" name="price" class="form-control" value="<%= product.price || '' %>" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-semibold">Marca / Modelo / Ano</label>
+                                            <div class="row g-2">
+                                                <div class="col-5">
+                                                    <input type="text" name="brand" class="form-control" placeholder="Marca" value="<%= product.brand || '' %>">
+                                                </div>
+                                                <div class="col-4">
+                                                    <input type="text" name="model" class="form-control" placeholder="Modelo" value="<%= product.model || '' %>">
+                                                </div>
+                                                <div class="col-3">
+                                                    <input type="number" name="year" class="form-control" placeholder="Ano" value="<%= product.year || '' %>">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label fw-semibold">Descrição</label>
+                                            <textarea name="description" class="form-control" rows="3"><%= product.description || '' %></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Classificação e Display Card -->
+                            <div class="card mb-4 shadow-sm">
+                                <div class="card-header bg-white py-3">
+                                    <h5 class="mb-0 fw-bold">
+                                        <i class="bi bi-tags text-primary me-2"></i>
+                                        Classificação e Display
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-semibold">Tipo de Produto *</label>
+                                            <select name="type" class="form-select" id="typeSelect">
+                                                <option value="MOTO" <%=product.type==='MOTO' ? 'selected' : '' %>>Moto</option>
+                                                <option value="CARRO" <%=product.type==='CARRO' ? 'selected' : '' %>>Carro</option>
+                                                <option value="CARTA_CREDITO" <%=product.type==='CARTA_CREDITO' ? 'selected' : '' %>>Carta de Crédito</option>
+                                                <option value="ELETRONICO" <%=product.type==='ELETRONICO' ? 'selected' : '' %>>Eletrônico</option>
+                                                <option value="IMOVEL" <%=product.type==='IMOVEL' ? 'selected' : '' %>>Imóvel</option>
+                                                <option value="SERVICO" <%=product.type==='SERVICO' ? 'selected' : '' %>>Serviço</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-semibold">Categoria Específica *</label>
+                                            <input type="hidden" name="category" id="categoryHiddenInputValue" value="<%= product.category || '' %>">
+                                            <select class="form-select" id="categorySelect" required>
+                                                <!-- Populated by JS -->
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4 d-flex flex-column justify-content-center">
+                                            <div class="form-check form-switch mb-2">
+                                                <input class="form-check-input" type="checkbox" name="isFeatured" id="isFeaturedCheck" <%=product.isFeatured ? 'checked' : '' %>>
+                                                <label class="form-check-label ms-2" for="isFeaturedCheck">
+                                                    <strong>Produto em Destaque</strong>
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" name="isPopular" id="isPopularCheck" <%=product.isPopular ? 'checked' : '' %>>
+                                                <label class="form-check-label ms-2" for="isPopularCheck">
+                                                    <strong>Mais Popular</strong>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Galeria de Imagens Card -->
+                            <div class="card mb-4 shadow-sm">
+                                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0 fw-bold">
+                                        <i class="bi bi-images text-primary me-2"></i>
+                                        Galeria de Imagens
+                                    </h5>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="addImageBtn">
+                                        <i class="bi bi-plus-lg me-1"></i>Adicionar Imagem
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Hidden primary inputs generated at submit -->
+                                    <input type="hidden" name="imageUrl" id="mainImageUrlHidden">
+                                    <input type="hidden" name="imageUrls" id="imageUrlsArrayHidden">
+                                    
+                                    <div id="imageUrlsContainer">
+                                        <!-- Inputs populated by JS based on product.imageUrls -->
+                                    </div>
+                                    <div class="form-text mt-2"><i class="bi bi-info-circle me-1"></i>A primeira imagem adicionada será usada como miniatura principal (thumbnail).</div>
+                                </div>
+                            </div>
+
+                            <!-- Planos e Prazos Card -->
+                            <div class="card mb-4 shadow-sm">
+                                <div class="card-header bg-white py-3">
+                                    <h5 class="mb-0 fw-bold">
+                                        <i class="bi bi-calendar-range text-primary me-2"></i>
+                                        Geração Automática de Planos
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-semibold">Prazo Mínimo (meses) *</label>
+                                            <input type="number" name="minDuration" class="form-control" value="<%= product.minDuration || 12 %>" min="1" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-semibold">Prazo Máximo (meses) *</label>
+                                            <input type="number" name="maxDuration" class="form-control" value="<%= product.maxDuration || 60 %>" min="1" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-semibold">Taxa de Adm. (%) *</label>
+                                            <input type="number" step="0.01" name="adminFeeRate" class="form-control" value="<%= product.adminFeeRate || 15.0 %>" required>
+                                        </div>
+                                        <div class="col-md-3 d-flex align-items-end">
+                                            <div class="alert alert-info mb-0 py-2 small w-100 text-center">
+                                                Salvar o produto gerará planos anuais.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Especificações Técnicas Card -->
+                            <div class="card mb-4 shadow-sm">
+                                <div class="card-header bg-white py-3">
+                                    <h5 class="mb-0 fw-bold">
+                                        <i class="bi bi-gear text-primary me-2"></i>
+                                        Especificações Técnicas
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <textarea name="specs" id="specsJson" class="form-control d-none"><%= product.specs || '{}' %></textarea>
+                                    <div id="dynamicSpecsContainer" class="row g-3">
+                                        <!-- Fields injected by JS -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Status & Save -->
+                            <div class="card shadow-sm border-0 bg-light">
+                                <div class="card-body d-flex justify-content-between align-items-center py-3">
+                                    <div class="form-check form-switch ps-5">
+                                        <input class="form-check-input fs-4 mt-1 ms-n5" type="checkbox" name="active" id="activeCheck" <%=product.active !== false ? 'checked' : '' %>>
+                                        <label class="form-check-label mt-1 ms-2" for="activeCheck">
+                                            <strong>Produto Ativo</strong> (Visível no App)
+                                        </label>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <a href="/admin/products" class="btn btn-outline-secondary px-4">
+                                            Cancelar
+                                        </a>
+                                        <button type="submit" class="btn btn-primary px-4 fw-bold">
+                                            <i class="bi bi-check-lg me-2"></i>Salvar Produto
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </form>
+                    </div>
+        </div>
+
+<%- include('../../partials/footer') %>

@@ -1,0 +1,576 @@
+<%- include('../../partials/header') %>
+
+    <%- include('../../partials/sidebar', { path: '/payments' }) %>
+
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title">Controle de Pagamentos</h1>
+                    <p class="text-muted mb-0">Gerencie parcelas e recebimentos</p>
+                </div>
+                <div class="top-bar-actions">
+                    <a href="/admin/payments/overdue" class="btn btn-danger shadow-sm" style="border-radius: 10px;">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>Atrasados
+                    </a>
+                    <a href="/admin/payments/calendar" class="btn btn-outline-primary shadow-sm" style="border-radius: 10px;">
+                        <i class="bi bi-calendar3 me-2"></i>Calendário
+                    </a>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="bi bi-moon-stars" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length > 0) { %>
+                <div class="alert alert-success alert-dismissible fade show shadow-sm border-0" role="alert" style="border-radius: 12px;">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <%= success_msg %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+
+            <!-- Stats Cards -->
+            <div class="row g-4 mb-5">
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Recebido</div>
+                                <div style="font-size: 1.8rem; font-weight: 800; line-height: 1; color: #10b981;">
+                                    <span style="font-size: 1rem;">R$</span>
+                                    <%= summary.totalPaid.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                </div>
+                                <small class="text-muted mt-2 d-block"><%= installments.filter(i => i.status === 'PAID').length %> parcelas pagas</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Pendente</div>
+                                <div style="font-size: 1.8rem; font-weight: 800; line-height: 1; color: #f59e0b;">
+                                    <span style="font-size: 1rem;">R$</span>
+                                    <%= summary.totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                </div>
+                                <small class="text-muted mt-2 d-block"><%= installments.filter(i => i.status === 'PENDING').length %> parcelas aguardando</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                                <i class="bi bi-clock-history"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Atrasado</div>
+                                <div style="font-size: 1.8rem; font-weight: 800; line-height: 1; color: #ef4444;">
+                                    <span style="font-size: 1rem;">R$</span>
+                                    <%= summary.totalOverdue.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                </div>
+                                <small class="text-muted mt-2 d-block"><%= installments.filter(i => i.status === 'OVERDUE').length %> parcelas vencidas</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="premium-stat-card p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="info-label">Total Geral</div>
+                                <div style="font-size: 1.8rem; font-weight: 800; line-height: 1; color: var(--primary-color);">
+                                    <span style="font-size: 1rem;">R$</span>
+                                    <%= (summary.totalPaid + summary.totalPending + summary.totalOverdue).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                </div>
+                                <small class="text-muted mt-2 d-block"><%= summary.count %> parcelas no total</small>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background: rgba(13, 110, 253, 0.1); color: var(--primary-color);">
+                                <i class="bi bi-cash-stack"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Filters + View Toggle -->
+            <div class="premium-info-card mb-4">
+                <div class="card-header-premium d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="btn-group shadow-sm" role="group">
+                            <a href="/admin/payments?status=ALL" class="btn btn-sm <%= status === 'ALL' ? 'btn-primary' : 'btn-outline-primary' %>">
+                                <i class="bi bi-grid-3x3-gap me-1"></i>Todos <span class="badge bg-white text-primary ms-1"><%= summary.count %></span>
+                            </a>
+                            <a href="/admin/payments?status=PAID" class="btn btn-sm <%= status === 'PAID' ? 'btn-success' : 'btn-outline-success' %>">
+                                <i class="bi bi-check-circle-fill me-1"></i>Pagos
+                            </a>
+                            <a href="/admin/payments?status=PENDING" class="btn btn-sm <%= status === 'PENDING' ? 'btn-warning' : 'btn-outline-warning' %>">
+                                <i class="bi bi-clock me-1"></i>Pendentes
+                            </a>
+                            <a href="/admin/payments?status=OVERDUE" class="btn btn-sm <%= status === 'OVERDUE' ? 'btn-danger' : 'btn-outline-danger' %>">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>Atrasados
+                            </a>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <button class="btn btn-sm btn-outline-success" onclick="exportToExcel()">
+                            <i class="bi bi-file-earmark-excel me-1"></i>Exportar
+                        </button>
+                        <!-- View Toggle -->
+                        <div class="btn-group shadow-sm" role="group">
+                            <button type="button" class="btn btn-sm btn-outline-primary active" id="btnTableView" onclick="setView('table')" title="Tabela">
+                                <i class="bi bi-list-ul"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnCardsView" onclick="setView('cards')" title="Cards">
+                                <i class="bi bi-grid-3x3-gap"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Filters (collapsible) -->
+            <div class="premium-info-card mb-4" id="advancedFiltersCard" style="display: none;">
+                <div class="p-4">
+                    <form method="GET" action="/admin/payments">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small text-muted text-uppercase">
+                                    <i class="bi bi-funnel me-1"></i>Status
+                                </label>
+                                <select class="form-select" name="status" style="border-radius: 8px;">
+                                    <option value="ALL" <%= status === 'ALL' ? 'selected' : '' %>>Todos os Status</option>
+                                    <option value="PENDING" <%= status === 'PENDING' ? 'selected' : '' %>>Pendente</option>
+                                    <option value="PAID" <%= status === 'PAID' ? 'selected' : '' %>>Pago</option>
+                                    <option value="OVERDUE" <%= status === 'OVERDUE' ? 'selected' : '' %>>Atrasado</option>
+                                    <option value="REFUNDED" <%= status === 'REFUNDED' ? 'selected' : '' %>>Reembolsado</option>
+                                    <option value="CANCELLED" <%= status === 'CANCELLED' ? 'selected' : '' %>>Cancelado</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small text-muted text-uppercase">
+                                    <i class="bi bi-calendar-month me-1"></i>Mês/Ano
+                                </label>
+                                <input type="month" class="form-control" name="month" value="<%= month || '' %>" style="border-radius: 8px;">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-muted text-uppercase">
+                                    <i class="bi bi-search me-1"></i>Buscar Cliente
+                                </label>
+                                <input type="text" class="form-control" placeholder="Digite o nome do cliente..." id="searchInput" style="border-radius: 8px;">
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end gap-2">
+                                <button type="submit" class="btn btn-primary flex-1" style="border-radius: 8px;">
+                                    <i class="bi bi-search me-1"></i>Filtrar
+                                </button>
+                                <a href="/admin/payments" class="btn btn-outline-secondary" style="border-radius: 8px;">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end mb-3">
+                <button class="btn btn-sm btn-outline-secondary" onclick="toggleAdvancedFilters()" style="border-radius: 8px;">
+                    <i class="bi bi-sliders me-2"></i>Filtros Avançados
+                    <i class="bi bi-chevron-down ms-1" id="filterToggleIcon"></i>
+                </button>
+            </div>
+
+            <!-- Table View -->
+            <div class="payments-view" id="tableView">
+                <div class="premium-table-container mb-4">
+                    <div class="bg-white border-0 pt-4 pb-3 px-4 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid var(--border-color) !important;">
+                        <h5 class="mb-0 fw-bold">
+                            <i class="bi bi-cash-coin text-primary me-2"></i>
+                            Parcelas (<%= summary.count %>)
+                        </h5>
+                    </div>
+
+                    <% if (installments && installments.length > 0) { %>
+                        <div class="p-0">
+                        <div class="table-responsive">
+                            <table class="table table-custom align-middle w-100" id="paymentsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Cliente</th>
+                                        <th>Produto</th>
+                                        <th>Parcela</th>
+                                        <th>Valor</th>
+                                        <th>Vencimento</th>
+                                        <th>Status</th>
+                                        <th class="text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% installments.forEach(inst => { %>
+                                        <%
+                                        const daysUntilDue = Math.floor((new Date(inst.dueDate) - new Date()) / (1000 * 60 * 60 * 24));
+                                        const isNearDue = daysUntilDue <= 3 && daysUntilDue >= 0 && inst.status === 'PENDING';
+                                        %>
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="user-avatar text-white fw-bold d-flex align-items-center justify-content-center me-3 shadow-sm"
+                                                        style="width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); font-size: 1rem;">
+                                                        <%= inst.subscription.user.name.charAt(0).toUpperCase() %>
+                                                    </div>
+                                                    <div>
+                                                        <strong class="text-dark d-block" style="font-size: 0.95rem;">
+                                                            <%= inst.subscription.user.name %>
+                                                        </strong>
+                                                        <div class="text-muted small"><%= inst.subscription.user.email %></div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <strong class="text-dark d-block" style="font-size: 0.95rem;">
+                                                        <%= inst.subscription.plan.product.name %>
+                                                    </strong>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge" style="background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-color);">
+                                                    <%= inst.number %>/<%= inst.subscription.totalInstallments %>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <strong style="color: var(--success-color); font-size: 0.95rem;">
+                                                    R$ <%= Number(inst.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %>
+                                                </strong>
+                                            </td>
+                                            <td>
+                                                <span class="text-muted" style="font-size: 0.9rem;">
+                                                    <i class="bi bi-calendar3 me-1"></i><%= new Date(inst.dueDate).toLocaleDateString('pt-BR') %>
+                                                </span>
+                                                <% if (isNearDue) { %>
+                                                    <span class="badge-premium ms-1" style="background: rgba(245, 158, 11, 0.15); color: #92400e; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.65rem;">
+                                                        <i class="bi bi-alarm"></i>
+                                                        <%= daysUntilDue === 0 ? 'Hoje' : daysUntilDue + 'd' %>
+                                                    </span>
+                                                <% } %>
+                                            </td>
+                                            <td>
+                                                <% if (inst.status === 'PAID') { %>
+                                                    <span class="badge-premium" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2);"><i class="bi bi-check-circle-fill"></i>Pago</span>
+                                                <% } else if (inst.status === 'PENDING') { %>
+                                                    <span class="badge-premium" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2);"><i class="bi bi-clock-fill"></i>Pendente</span>
+                                                <% } else if (inst.status === 'OVERDUE') { %>
+                                                    <span class="badge-premium" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);"><i class="bi bi-exclamation-triangle-fill"></i>Atrasado</span>
+                                                <% } else if (inst.status === 'REFUNDED') { %>
+                                                    <span class="badge-premium" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2);"><i class="bi bi-arrow-return-left"></i>Reembolsado</span>
+                                                <% } else if (inst.status === 'CANCELLED') { %>
+                                                    <span class="badge-premium" style="background: rgba(108, 117, 125, 0.1); color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.2);"><i class="bi bi-x-circle-fill"></i>Cancelado</span>
+                                                <% } else if (inst.paymentMethod === 'SANDBOX_WAITING_APPROVAL') { %>
+                                                    <span class="badge-premium" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2);"><i class="bi bi-hourglass-split"></i>Aprovação</span>
+                                                <% } else { %>
+                                                    <span class="badge-premium" style="background: rgba(108, 117, 125, 0.1); color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.2);"><%= inst.status %></span>
+                                                <% } %>
+                                            </td>
+                                            <td class="text-center">
+                                                <% if (inst.paymentMethod === 'SANDBOX_WAITING_APPROVAL' && inst.status === 'PENDING') { %>
+                                                    <div class="d-flex justify-content-center gap-2">
+                                                        <button class="btn btn-sm btn-outline-success" style="border-radius: 8px;"
+                                                            data-id="<%= inst.id %>"
+                                                            onclick="quickApprove(this)"
+                                                            title="Aprovar (Sandbox)">
+                                                            <i class="bi bi-check-lg"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger" style="border-radius: 8px;"
+                                                            data-id="<%= inst.id %>"
+                                                            onclick="quickReject(this)"
+                                                            title="Rejeitar">
+                                                            <i class="bi bi-x-lg"></i>
+                                                        </button>
+                                                    </div>
+                                                <% } else { %>
+                                                    <button class="btn btn-sm btn-outline-primary" style="border-radius: 8px;"
+                                                        data-id="<%= inst.id %>"
+                                                        data-status="<%= inst.status %>"
+                                                        data-date="<%= inst.paymentDate ? new Date(inst.paymentDate).toISOString().split('T')[0] : '' %>"
+                                                        data-method="<%= inst.paymentMethod || '' %>"
+                                                        onclick="openUpdateModal(this)"
+                                                        title="Editar Pagamento">
+                                                        <i class="bi bi-pencil-fill"></i>
+                                                    </button>
+                                                <% } %>
+                                            </td>
+                                        </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                        </div>
+                    <% } else { %>
+                        <div class="text-center py-5">
+                            <div class="mb-4 d-inline-block p-4 rounded-circle" style="background: rgba(var(--primary-rgb, 13, 110, 253), 0.1);">
+                                <i class="bi bi-cash-coin text-primary" style="font-size: 3rem;"></i>
+                            </div>
+                            <h5 class="text-dark fw-bold">Nenhuma parcela encontrada</h5>
+                            <p class="text-muted mb-0">Tente ajustar os filtros ou adicionar novos contratos</p>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Cards View -->
+            <div class="payments-view" id="cardsView" style="display: none;">
+                <% if (installments && installments.length > 0) { %>
+                    <div class="row g-4">
+                        <% installments.forEach(inst => { %>
+                            <%
+                            const daysUntilDue = Math.floor((new Date(inst.dueDate) - new Date()) / (1000 * 60 * 60 * 24));
+                            const isNearDue = daysUntilDue <= 3 && daysUntilDue >= 0 && inst.status === 'PENDING';
+                            %>
+                            <div class="col-md-6 col-lg-4">
+                                <div class="premium-stat-card h-100" <%- `style="overflow: hidden; border-left: 4px solid ${inst.status === 'PAID' ? '#10b981' : inst.status === 'OVERDUE' ? '#ef4444' : '#f59e0b'};"` %>>
+                                    <div class="p-4">
+                                        <!-- Client Info -->
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div style="width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; margin-right: 0.75rem;">
+                                                <%= inst.subscription.user.name.charAt(0).toUpperCase() %>
+                                            </div>
+                                            <div class="flex-1">
+                                                <strong class="d-block" style="font-size: 0.95rem;"><%= inst.subscription.user.name %></strong>
+                                                <small class="text-muted"><%= inst.subscription.plan.product.name %></small>
+                                            </div>
+                                            <% if (inst.status === 'PAID') { %>
+                                                <span class="badge-premium" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); font-size: 0.7rem;"><i class="bi bi-check-circle-fill"></i>Pago</span>
+                                            <% } else if (inst.status === 'PENDING') { %>
+                                                <span class="badge-premium" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); font-size: 0.7rem;"><i class="bi bi-clock-fill"></i>Pendente</span>
+                                            <% } else if (inst.status === 'OVERDUE') { %>
+                                                <span class="badge-premium" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 0.7rem;"><i class="bi bi-exclamation-triangle-fill"></i>Atrasado</span>
+                                            <% } else if (inst.status === 'REFUNDED') { %>
+                                                <span class="badge-premium" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2); font-size: 0.7rem;"><i class="bi bi-arrow-return-left"></i>Reembolsado</span>
+                                            <% } else if (inst.status === 'CANCELLED') { %>
+                                                <span class="badge-premium" style="background: rgba(108, 117, 125, 0.1); color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.2); font-size: 0.7rem;"><i class="bi bi-x-circle-fill"></i>Cancelado</span>
+                                            <% } %>
+                                        </div>
+
+                                        <!-- Payment Details -->
+                                        <div class="d-flex gap-4 mb-3">
+                                            <div>
+                                                <div class="info-label">Valor</div>
+                                                <strong style="color: var(--success-color); font-size: 1.1rem;">R$ <%= Number(inst.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) %></strong>
+                                            </div>
+                                            <div>
+                                                <div class="info-label">Parcela</div>
+                                                <span class="fw-semibold"><%= inst.number %>/<%= inst.subscription.totalInstallments %></span>
+                                            </div>
+                                            <div>
+                                                <div class="info-label">Vencimento</div>
+                                                <span class="fw-semibold"><%= new Date(inst.dueDate).toLocaleDateString('pt-BR') %></span>
+                                            </div>
+                                        </div>
+
+                                        <% if (isNearDue) { %>
+                                            <div class="alert alert-warning border-0 py-2 px-3 mb-3" style="border-radius: 8px; background: rgba(245, 158, 11, 0.1); color: #92400e; font-size: 0.85rem; font-weight: 600;">
+                                                <i class="bi bi-alarm-fill me-1"></i>
+                                                Vence <%= daysUntilDue === 0 ? 'HOJE' : 'em ' + daysUntilDue + ' dia(s)' %>!
+                                            </div>
+                                        <% } %>
+
+                                        <!-- Actions -->
+                                        <div class="d-flex gap-2">
+                                            <% if (inst.paymentMethod === 'SANDBOX_WAITING_APPROVAL' && inst.status === 'PENDING') { %>
+                                                <button class="btn btn-sm btn-outline-success flex-1" style="border-radius: 8px;" data-id="<%= inst.id %>" onclick="quickApprove(this)">
+                                                    <i class="bi bi-check-lg me-1"></i>Aprovar
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger flex-1" style="border-radius: 8px;" data-id="<%= inst.id %>" onclick="quickReject(this)">
+                                                    <i class="bi bi-x-lg me-1"></i>Rejeitar
+                                                </button>
+                                            <% } else { %>
+                                                <button class="btn btn-sm btn-outline-primary flex-1" style="border-radius: 8px;"
+                                                    data-id="<%= inst.id %>"
+                                                    data-status="<%= inst.status %>"
+                                                    data-date="<%= inst.paymentDate ? new Date(inst.paymentDate).toISOString().split('T')[0] : '' %>"
+                                                    data-method="<%= inst.paymentMethod || '' %>"
+                                                    onclick="openUpdateModal(this)">
+                                                    <i class="bi bi-pencil-fill me-1"></i>Editar
+                                                </button>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-5">
+                        <div class="mb-4 d-inline-block p-4 rounded-circle" style="background: rgba(var(--primary-rgb, 13, 110, 253), 0.1);">
+                            <i class="bi bi-cash-coin text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="text-dark fw-bold">Nenhuma parcela encontrada</h5>
+                        <p class="text-muted mb-0">Tente ajustar os filtros ou adicionar novos contratos</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Update Payment Modal -->
+        <div class="modal fade" id="updatePaymentModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content modal-content-premium">
+                    <form id="updatePaymentForm" method="POST">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <div class="modal-header modal-header-premium py-3 px-4" style="background: rgba(99, 102, 241, 0.1);">
+                            <h5 class="modal-title fw-bold" style="color: var(--primary-color);">
+                                <i class="bi bi-pencil-square me-2"></i>Atualizar Pagamento
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small text-muted text-uppercase">
+                                    <i class="bi bi-tag me-1"></i>Status
+                                </label>
+                                <select class="form-select" name="status" id="modalStatus" onchange="togglePaymentFields()" style="border-radius: 8px;">
+                                    <option value="PENDING">⏳ Pendente</option>
+                                    <option value="PAID">✅ Pago</option>
+                                    <option value="OVERDUE">🚨 Atrasado</option>
+                                </select>
+                            </div>
+
+                            <div id="paymentFields">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small text-muted text-uppercase">
+                                        <i class="bi bi-calendar-check me-1"></i>Data do Pagamento
+                                    </label>
+                                    <input type="date" class="form-control" name="paymentDate" id="modalPaymentDate" style="border-radius: 8px;">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small text-muted text-uppercase">
+                                        <i class="bi bi-credit-card me-1"></i>Método de Pagamento
+                                    </label>
+                                    <select class="form-select" name="paymentMethod" id="modalPaymentMethod" style="border-radius: 8px;">
+                                        <option value="">Selecione o método...</option>
+                                        <option value="PIX">💳 PIX</option>
+                                        <option value="BOLETO">📄 Boleto</option>
+                                        <option value="DEBITO">💰 Débito Automático</option>
+                                        <option value="DINHEIRO">💵 Dinheiro</option>
+                                        <option value="ADMIN_MANUAL">⚙️ Manual (Admin)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer modal-footer-premium py-3 px-4" style="background: var(--bg-secondary);">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px;">
+                                <i class="bi bi-x-lg me-1"></i>Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary" style="border-radius: 8px;">
+                                <i class="bi bi-check-lg me-1"></i>Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // View Switcher
+            function setView(view) {
+                document.querySelectorAll('.payments-view').forEach(v => v.style.display = 'none');
+                document.getElementById(view === 'table' ? 'tableView' : 'cardsView').style.display = '';
+                document.getElementById('btnTableView').classList.toggle('active', view === 'table');
+                document.getElementById('btnCardsView').classList.toggle('active', view !== 'table');
+                localStorage.setItem('payments_view', view);
+            }
+            // Restore saved view
+            const savedView = localStorage.getItem('payments_view');
+            if (savedView) setView(savedView);
+
+            // Advanced Filters Toggle
+            function toggleAdvancedFilters() {
+                const f = document.getElementById('advancedFiltersCard');
+                const icon = document.getElementById('filterToggleIcon');
+                f.style.display = f.style.display === 'none' ? '' : 'none';
+                icon.classList.toggle('bi-chevron-down');
+                icon.classList.toggle('bi-chevron-up');
+            }
+
+            // Search
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', function () {
+                    const q = this.value.toLowerCase();
+                    document.querySelectorAll('#paymentsTable tbody tr').forEach(row => {
+                        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+                    });
+                });
+            }
+
+            // Modal
+            function openUpdateModal(btn) {
+                const id = btn.dataset.id;
+                const status = btn.dataset.status;
+                const date = btn.dataset.date;
+                const method = btn.dataset.method;
+                document.getElementById('updatePaymentForm').action = '/admin/payments/' + id;
+                document.getElementById('modalStatus').value = status;
+                document.getElementById('modalPaymentDate').value = date;
+                document.getElementById('modalPaymentMethod').value = method;
+                togglePaymentFields();
+                new bootstrap.Modal(document.getElementById('updatePaymentModal')).show();
+            }
+
+            function togglePaymentFields() {
+                const status = document.getElementById('modalStatus').value;
+                document.getElementById('paymentFields').style.display = status === 'PAID' ? '' : 'none';
+            }
+
+            // Quick Approve/Reject (Sandbox)
+            function quickApprove(btn) {
+                const id = btn.dataset.id;
+                fetch('/admin/payments/' + id + '/approve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ _csrf: '<%= csrfToken %>' })
+                }).then(r => { if (r.ok) location.reload(); else alert('Erro ao aprovar'); });
+            }
+
+            function quickReject(btn) {
+                const id = btn.dataset.id;
+                fetch('/admin/payments/' + id + '/reject', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ _csrf: '<%= csrfToken %>' })
+                }).then(r => { if (r.ok) location.reload(); else alert('Erro ao rejeitar'); });
+            }
+
+            // Excel Export
+            function exportToExcel() {
+                const table = document.getElementById('paymentsTable');
+                if (!table) return alert('Nada para exportar');
+                let csv = '';
+                const rows = table.querySelectorAll('tr');
+                rows.forEach(row => {
+                    const cols = row.querySelectorAll('th, td');
+                    const rowData = [];
+                    cols.forEach(col => rowData.push('"' + col.innerText.replace(/"/g, '""').trim() + '"'));
+                    csv += rowData.join(',') + '\n';
+                });
+                const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'pagamentos_' + new Date().toISOString().split('T')[0] + '.csv';
+                link.click();
+            }
+        </script>
+
+<%- include('../../partials/footer') %>

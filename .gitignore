@@ -1,0 +1,29 @@
+# Dependency directories
+node_modules/
+**/node_modules/
+.dart_tool/
+**/.dart_tool/
+build/
+**/build/
+dist/
+**/dist/
+
+# Env files
+.env
+.env.local
+.env.*
+**/.env
+**/.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Executables (like cloudflared.exe, unless needed, but usually better to ignore large binaries)
+cloudflared.exe
+*.exe
+
+# Log files
+*.log
+**/logs/
+**/tmp/
