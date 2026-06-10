@@ -7,7 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:katari/providers/consortium_provider.dart';
+import 'package:katari/features/consortium/providers/consortium_provider.dart';
 import 'package:katari/core/theme/app_theme.dart';
 import 'package:katari/core/constants/routes.dart';
 import 'package:katari/features/camera/screens/custom_camera_screen.dart';
@@ -511,10 +511,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryColor,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 18),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
                       child: Text(
@@ -522,6 +522,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
                         ),
                       ),
                     ),
@@ -537,18 +538,34 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Widget _buildStepIndicator(int step, String label, IconData icon) {
     final isActive = _currentStep >= step;
+    final isCompleted = _currentStep > step;
+    
     return Expanded(
       child: Column(
         children: [
-          Container(
-            width: 50,
-            height: 50,
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: isActive ? AppTheme.primaryColor : Colors.grey.shade200,
+              color: isActive ? AppTheme.primaryColor : Colors.grey.shade100,
               shape: BoxShape.circle,
+              border: Border.all(
+                color: isActive ? AppTheme.primaryColor : Colors.grey.shade300,
+                width: 2,
+              ),
+              boxShadow: isActive
+                  ? [
+                      BoxShadow(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ]
+                  : [],
             ),
             child: Icon(
-              icon,
+              isCompleted ? Icons.check_rounded : icon,
               color: isActive ? Colors.white : Colors.grey.shade400,
               size: 24,
             ),
@@ -558,8 +575,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             label,
             style: TextStyle(
               fontSize: 12,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              color: isActive ? AppTheme.primaryColor : Colors.grey.shade600,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+              color: isActive ? AppTheme.primaryColor : Colors.grey.shade500,
             ),
           ),
         ],
@@ -570,10 +587,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget _buildStepLine(int step) {
     final isCompleted = _currentStep > step;
     return Expanded(
-      child: Container(
-        height: 2,
-        margin: const EdgeInsets.only(bottom: 35),
-        color: isCompleted ? AppTheme.primaryColor : Colors.grey.shade300,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        height: 3,
+        margin: const EdgeInsets.only(bottom: 25),
+        decoration: BoxDecoration(
+          color: isCompleted ? AppTheme.primaryColor : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(2),
+        ),
       ),
     );
   }
@@ -857,47 +878,78 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     TextInputAction? textInputAction,
     bool enabled = true,
   }) {
-    return TextField(
-      controller: controller,
-      inputFormatters: inputFormatters,
-      keyboardType: keyboardType,
-      focusNode: focusNode,
-      enabled: enabled,
-      textInputAction: textInputAction ??
-          (nextFocus != null ? TextInputAction.next : TextInputAction.done),
-      onSubmitted: (_) {
-        if (nextFocus != null) {
-          nextFocus.requestFocus();
-        }
-      },
-      style: TextStyle(
-        fontSize: 16,
-        color: enabled ? Colors.black87 : Colors.grey.shade600,
+    return Container(
+      decoration: BoxDecoration(
+        color: enabled ? Colors.white : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: enabled
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ]
+            : [],
       ),
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        floatingLabelBehavior: FloatingLabelBehavior.always,
-        prefixIcon:
-            Icon(icon, color: enabled ? AppTheme.primaryColor : Colors.grey),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+      child: TextField(
+        controller: controller,
+        inputFormatters: inputFormatters,
+        keyboardType: keyboardType,
+        focusNode: focusNode,
+        enabled: enabled,
+        textInputAction: textInputAction ??
+            (nextFocus != null ? TextInputAction.next : TextInputAction.done),
+        onSubmitted: (_) {
+          if (nextFocus != null) {
+            nextFocus.requestFocus();
+          }
+        },
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: enabled ? Colors.grey.shade900 : Colors.grey.shade500,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          labelStyle: TextStyle(
+            color: enabled ? Colors.grey.shade700 : Colors.grey.shade500,
+            fontWeight: FontWeight.w500,
+          ),
+          floatingLabelBehavior: FloatingLabelBehavior.auto,
+          prefixIcon: Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: enabled ? AppTheme.primaryColor.withValues(alpha: 0.05) : Colors.transparent,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                bottomLeft: Radius.circular(16),
+              ),
+            ),
+            child: Icon(icon, color: enabled ? AppTheme.primaryColor : Colors.grey.shade400, size: 22),
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+          ),
+          disabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.grey.shade100, width: 1),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2),
+          ),
+          filled: true,
+          fillColor: Colors.transparent,
+          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         ),
-        disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2),
-        ),
-        filled: true,
-        fillColor: enabled ? Colors.grey.shade50 : Colors.grey.shade100,
       ),
     );
   }
@@ -906,46 +958,59 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       String label, String type, XFile? file, IconData icon) {
     final hasImage = file != null;
 
-    return InkWell(
-      onTap: () => _pickImage(type),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 110),
-        decoration: BoxDecoration(
-          color: hasImage
-              ? AppTheme.primaryColor.withValues(alpha: 0.05)
-              : Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: hasImage ? AppTheme.primaryColor : Colors.grey.shade300,
-            width: hasImage ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              margin: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: hasImage ? null : Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(8),
-                image: hasImage
-                    ? DecorationImage(
-                        image: kIsWeb
-                            ? NetworkImage(file.path) as ImageProvider
-                            : FileImage(io.File(file.path)),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-              ),
-              child: hasImage
-                  ? null
-                  : Icon(icon, color: Colors.grey.shade400, size: 32),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _pickImage(type),
+        borderRadius: BorderRadius.circular(20),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          constraints: const BoxConstraints(minHeight: 120),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: hasImage
+                ? Colors.green.shade50
+                : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: hasImage ? Colors.green.shade300 : Colors.grey.shade300,
+              width: hasImage ? 2 : 1.5,
+              style: hasImage ? BorderStyle.solid : BorderStyle.solid, // Could use dashed via package
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+            boxShadow: [
+              BoxShadow(
+                color: (hasImage ? Colors.green : Colors.grey).withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: hasImage ? Colors.white : Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: hasImage ? [
+                    BoxShadow(color: Colors.green.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 4))
+                  ] : [],
+                  image: hasImage
+                      ? DecorationImage(
+                          image: kIsWeb
+                              ? NetworkImage(file.path) as ImageProvider
+                              : FileImage(io.File(file.path)),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                child: hasImage
+                    ? null
+                    : Icon(icon, color: Colors.grey.shade400, size: 36),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -956,37 +1021,44 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: hasImage
-                            ? AppTheme.primaryColor
-                            : Colors.grey.shade700,
+                            ? Colors.green.shade800
+                            : AppTheme.secondaryColor,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
-                      hasImage ? 'Toque para alterar' : 'Toque para tirar foto',
+                      hasImage ? 'Tocar para substituir' : 'Tocar para capturar',
                       style: TextStyle(
                         fontSize: 13,
+                        fontWeight: FontWeight.w500,
                         color: Colors.grey.shade600,
                       ),
                     ),
                     if (hasImage) ...[
                       const SizedBox(height: 8),
-                      const Row(
+                      Row(
                         children: [
-                          Icon(
-                            Icons.check_circle,
-                            color: AppTheme.primaryColor,
-                            size: 16,
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade100,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.check,
+                              color: Colors.green.shade700,
+                              size: 12,
+                            ),
                           ),
-                          SizedBox(width: 4),
-                          Flexible(
+                          const SizedBox(width: 8),
+                          Expanded(
                             child: Text(
-                              'Imagem capturada',
+                              'Anexado',
                               style: TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.primaryColor,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                color: Colors.green.shade700,
+                                fontWeight: FontWeight.bold,
                               ),
-                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -995,15 +1067,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ],
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Icon(
-                hasImage ? Icons.edit : Icons.camera_alt,
-                color: hasImage ? AppTheme.primaryColor : Colors.grey.shade400,
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: hasImage ? Colors.green.shade100 : Colors.grey.shade100,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  hasImage ? Icons.refresh_rounded : Icons.camera_alt_rounded,
+                  color: hasImage ? Colors.green.shade700 : Colors.grey.shade600,
+                  size: 20,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

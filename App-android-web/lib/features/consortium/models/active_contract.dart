@@ -1,4 +1,4 @@
-import 'package:katari/data/models/product.dart';
+import 'package:katari/features/catalog/models/product.dart';
 
 class ActiveContract {
   final Product product;

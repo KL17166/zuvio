@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:katari/providers/consortium_provider.dart';
-import 'package:katari/data/models/consortium_plan.dart';
+import 'package:katari/features/consortium/providers/consortium_provider.dart';
+import 'package:katari/features/consortium/models/consortium_plan.dart';
 import 'package:katari/core/theme/app_theme.dart';
 import 'package:katari/core/constants/routes.dart';
 

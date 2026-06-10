@@ -2,13 +2,13 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:katari/core/constants/routes.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
-import 'package:katari/data/services/auth_service.dart';
-import 'package:katari/data/services/api_service.dart';
-import 'package:katari/device/biometric_service.dart';
-import 'package:katari/data/services/storage_service.dart';
+import 'package:katari/features/auth/services/auth_service.dart';
+import 'package:katari/core/network/api_service.dart';
+import 'package:katari/core/services/biometric_service.dart';
+import 'package:katari/core/services/storage_service.dart';
 import 'package:katari/core/theme/app_theme.dart';
 import 'package:provider/provider.dart';
-import 'package:katari/providers/consortium_provider.dart';
+import 'package:katari/features/consortium/providers/consortium_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

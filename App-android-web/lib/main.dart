@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 // Providers
-import 'package:katari/providers/auth_provider.dart';
-import 'package:katari/providers/product_provider.dart';
-import 'package:katari/providers/contract_provider.dart';
-import 'package:katari/providers/payment_provider.dart';
-import 'package:katari/providers/consortium_provider.dart';
+import 'package:katari/features/auth/providers/auth_provider.dart';
+import 'package:katari/features/catalog/providers/product_provider.dart';
+import 'package:katari/features/consortium/providers/contract_provider.dart';
+import 'package:katari/features/checkout/providers/payment_provider.dart';
+import 'package:katari/features/consortium/providers/consortium_provider.dart';
 
 // Utils
 import 'package:katari/core/theme/app_theme.dart';
@@ -27,7 +27,7 @@ import 'package:katari/features/checkout/screens/confirmation_screen.dart';
 
 // Services
 import 'package:katari/core/security/security_service.dart';
-import 'package:katari/shared/widgets/auth_guard.dart';
+import 'package:katari/features/auth/widgets/auth_guard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

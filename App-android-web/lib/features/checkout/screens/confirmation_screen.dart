@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:katari/core/theme/app_theme.dart';
 import 'dart:math' as math;
+import 'dart:ui';
 
 class ConfirmationScreen extends StatefulWidget {
   const ConfirmationScreen({super.key});
@@ -15,6 +16,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
   late AnimationController _confettiController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _rotateAnimation;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
@@ -22,12 +24,12 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
 
     _iconController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 1200),
     );
 
     _confettiController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 3000),
     );
 
     _scaleAnimation = CurvedAnimation(
@@ -35,18 +37,24 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
       curve: Curves.elasticOut,
     );
 
-    _rotateAnimation = Tween<double>(begin: 0, end: 1).animate(
+    _rotateAnimation = Tween<double>(begin: -0.2, end: 0).animate(
       CurvedAnimation(
         parent: _iconController,
-        curve: Curves.easeInOut,
+        curve: Curves.easeOutBack,
+      ),
+    );
+    
+    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _iconController,
+        curve: const Interval(0.4, 1.0, curve: Curves.easeIn),
       ),
     );
 
     _iconController.forward();
     _confettiController.repeat();
 
-    // Auto-stop confetti after 5 seconds to save battery/CPU
-    Future.delayed(const Duration(seconds: 5), () {
+    Future.delayed(const Duration(seconds: 4), () {
       if (mounted) _confettiController.stop();
     });
   }
@@ -61,282 +69,269 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade50,
       body: Stack(
         children: [
+          // Background Gradient Blob
+          Positioned(
+            top: -100,
+            left: -50,
+            right: -50,
+            height: 400,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [
+                    Colors.green.shade200.withValues(alpha: 0.6),
+                    Colors.grey.shade50.withValues(alpha: 0.0),
+                  ],
+                  radius: 0.8,
+                ),
+              ),
+            ),
+          ),
           // Confetti animation
-          ...List.generate(20, (index) => _buildConfetti(index)),
-          // Content
+          ...List.generate(30, (index) => _buildConfetti(index)),
+          
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(32),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Column(
                 children: [
                   Expanded(
                     child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Ícone animado
+                          const SizedBox(height: 40),
+                          // Animated Premium Icon
                           ScaleTransition(
                             scale: _scaleAnimation,
                             child: RotationTransition(
                               turns: _rotateAnimation,
-                              child: Container(
-                                width: 140,
-                                height: 140,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.green.shade400,
-                                      Colors.green.shade600
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color:
-                                          Colors.green.withValues(alpha: 0.4),
-                                      blurRadius: 30,
-                                      spreadRadius: 10,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  // Glow
+                                  Container(
+                                    width: 140,
+                                    height: 140,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.green.shade400.withValues(alpha: 0.4),
+                                          blurRadius: 40,
+                                          spreadRadius: 10,
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.check_rounded,
-                                  size: 80,
-                                  color: Colors.white,
-                                ),
+                                  ),
+                                  // Circle
+                                  Container(
+                                    width: 120,
+                                    height: 120,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [Colors.green.shade400, Colors.green.shade700],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 4),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.1),
+                                          blurRadius: 15,
+                                          offset: const Offset(0, 10),
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(
+                                      Icons.check_rounded,
+                                      size: 70,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
                           const SizedBox(height: 40),
-                          // Título
-                          const Text(
-                            'Pagamento Aprovado!',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 40,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.secondaryColor,
-                              height: 1.2,
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-
-                          // Card: Pagamento Confirmado
-                          Container(
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade50,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.green.shade200),
-                            ),
+                          
+                          FadeTransition(
+                            opacity: _fadeAnimation,
                             child: Column(
                               children: [
-                                Icon(
-                                  Icons.check_circle,
-                                  size: 48,
-                                  color: Colors.green.shade700,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Pagamento Confirmado',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.green.shade900,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Seu pagamento da adesão foi recebido com sucesso.',
+                                const Text(
+                                  'Pagamento\nAprovado!',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    fontSize: 15,
-                                    color: Colors.green.shade800,
-                                    height: 1.5,
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.w900,
+                                    color: AppTheme.secondaryColor,
+                                    height: 1.1,
+                                    letterSpacing: -0.5,
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 20),
+                                const SizedBox(height: 32),
 
-                          // Card: Verificando Documentos
-                          Container(
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.shade50,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.orange.shade200),
-                            ),
-                            child: Column(
-                              children: [
-                                Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: 52,
-                                      height: 52,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 3,
-                                        color: Colors.orange.shade400,
+                                // Glassmorphic Card: Pagamento
+                                _buildGlassCard(
+                                  icon: Icons.verified_rounded,
+                                  iconColor: Colors.green.shade600,
+                                  backgroundColor: Colors.green.shade50,
+                                  title: 'Pagamento Confirmado',
+                                  subtitle: 'Sua adesão foi recebida com sucesso.',
+                                ),
+                                const SizedBox(height: 20),
+
+                                // Glassmorphic Card: Verificando Documentos
+                                _buildGlassCard(
+                                  icon: Icons.document_scanner_rounded,
+                                  iconColor: Colors.orange.shade600,
+                                  backgroundColor: Colors.orange.shade50,
+                                  title: 'Análise de Documentos',
+                                  subtitle: 'Estamos verificando sua documentação. Seu contrato entra em vigor em breve.',
+                                  showSpinner: true,
+                                ),
+                                const SizedBox(height: 32),
+
+                                // Próximos passos
+                                Container(
+                                  padding: const EdgeInsets.all(24),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(24),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.03),
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 8),
                                       ),
-                                    ),
-                                    Icon(
-                                      Icons.assignment_ind,
-                                      size: 28,
-                                      color: Colors.orange.shade700,
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Verificando seus Documentos',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.orange.shade900,
+                                    ],
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Seus documentos estão sendo analisados pela nossa equipe. Assim que verificados, seu contrato entrará em vigor.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    color: Colors.orange.shade800,
-                                    height: 1.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-
-                          // Próximos passos
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.grey.shade200),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Row(
-                                  children: [
-                                    Icon(
-                                      Icons.info_outline,
-                                      color: AppTheme.primaryColor,
-                                      size: 20,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'O que acontece agora?',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.secondaryColor,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.auto_awesome_rounded,
+                                              color: AppTheme.primaryColor,
+                                              size: 20,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          const Text(
+                                            'Próximos Passos',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppTheme.secondaryColor,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(height: 20),
+                                      _buildNextStep('Verificação de segurança (até 24h)'),
+                                      _buildNextStep('Ativação do seu contrato'),
+                                      _buildNextStep('Notificação por e-mail e push'),
+                                      _buildNextStep('Acompanhamento via app'),
+                                    ],
+                                  ),
                                 ),
-                                const SizedBox(height: 12),
-                                _buildNextStep(
-                                    'Verificamos seus documentos (até 24h)'),
-                                _buildNextStep(
-                                    'Após aprovação, seu contrato entra em vigor'),
-                                _buildNextStep(
-                                    'Você será notificado sobre o resultado'),
-                                _buildNextStep(
-                                    'Acompanhe o status em "Meus Contratos"'),
                               ],
                             ),
                           ),
-
                         ],
                       ),
                     ),
                   ),
-                  // Botões
-                  Column(
-                    children: [
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // ✅ CORREÇÃO: Não chama contractProduct novamente!
-                            // O contrato já foi criado na ContractScreen
-                            // Apenas navega para home
-                            Navigator.pushNamedAndRemoveUntil(
-                              context,
-                              '/home',
-                              (route) => false,
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryColor,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 18),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: const Text(
-                            'IR PARA MINHA HOME',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            // TODOimplementar cópia do código
-                            // Instalar: share_plus package
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Row(
-                                  children: [
-                                    Icon(Icons.info_outline,
-                                        color: Colors.white),
-                                    SizedBox(width: 12),
-                                    Text('Funcionalidade em breve!'),
-                                  ],
-                                ),
-                                backgroundColor: Colors.blue.shade600,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
+                  
+                  // Botões inferiores
+                  FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 16),
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                                blurRadius: 15,
+                                offset: const Offset(0, 8),
                               ),
-                            );
-                          },
-                          icon: const Icon(Icons.share),
-                          label: const Text('COMPARTILHAR'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppTheme.primaryColor,
-                            padding: const EdgeInsets.symmetric(vertical: 18),
-                            side:
-                                const BorderSide(color: AppTheme.primaryColor),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                            ],
+                          ),
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primaryColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 20),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: const Text(
+                              'IR PARA MINHA HOME',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton.icon(
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Row(
+                                    children: [
+                                      Icon(Icons.info_outline, color: Colors.white),
+                                      SizedBox(width: 12),
+                                      Text('Compartilhamento em breve!'),
+                                    ],
+                                  ),
+                                  backgroundColor: AppTheme.primaryColor,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                              );
+                            },
+                            icon: Icon(Icons.share_rounded, color: Colors.grey.shade600),
+                            label: Text(
+                              'COMPARTILHAR',
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -347,26 +342,130 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
     );
   }
 
+  Widget _buildGlassCard({
+    required IconData icon,
+    required Color iconColor,
+    required Color backgroundColor,
+    required String title,
+    required String subtitle,
+    bool showSpinner = false,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: iconColor.withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.white.withValues(alpha: 0.8),
+                  backgroundColor.withValues(alpha: 0.5),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Row(
+              children: [
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (showSpinner)
+                      SizedBox(
+                        width: 56,
+                        height: 56,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          color: iconColor.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: iconColor.withValues(alpha: 0.2),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Icon(icon, size: 28, color: iconColor),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade900,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade700,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildNextStep(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 6,
-            height: 6,
+            margin: const EdgeInsets.only(top: 4),
+            width: 8,
+            height: 8,
             decoration: const BoxDecoration(
               color: AppTheme.primaryColor,
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Text(
               text,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 15,
                 color: Colors.grey.shade700,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -378,21 +477,20 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
   Widget _buildConfetti(int index) {
     final random = math.Random(index);
     final color = [
-      Colors.red,
-      Colors.blue,
+      AppTheme.primaryColor,
       Colors.green,
-      Colors.yellow,
-      Colors.purple,
+      Colors.blue,
       Colors.orange,
-    ][random.nextInt(6)];
+      Colors.purple,
+    ][random.nextInt(5)];
 
     final startX = random.nextDouble();
-    final delay = random.nextInt(1000);
+    final delay = random.nextInt(2000);
 
     return AnimatedBuilder(
       animation: _confettiController,
       builder: (context, child) {
-        final progress = (_confettiController.value + (delay / 2000)) % 1.0;
+        final progress = (_confettiController.value + (delay / 3000)) % 1.0;
         final screenHeight = MediaQuery.of(context).size.height;
         final screenWidth = MediaQuery.of(context).size.width;
 
@@ -402,11 +500,11 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
           child: Transform.rotate(
             angle: progress * 4 * math.pi,
             child: Container(
-              width: 10,
-              height: 10,
+              width: random.nextDouble() * 8 + 4,
+              height: random.nextDouble() * 12 + 6,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 1 - progress),
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),

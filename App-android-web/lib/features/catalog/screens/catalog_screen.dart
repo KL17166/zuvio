@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:katari/providers/consortium_provider.dart';
-import 'package:katari/data/models/product_category.dart';
+import 'package:katari/features/consortium/providers/consortium_provider.dart';
+import 'package:katari/features/catalog/models/product_category.dart';
 import 'package:katari/core/theme/app_theme.dart';
-import 'package:katari/shared/widgets/product_list_item.dart';
-import 'package:katari/shared/widgets/product_grid_item.dart';
-import 'package:katari/shared/widgets/category_filter_chip.dart';
+import 'package:katari/features/catalog/widgets/product_list_item.dart';
+import 'package:katari/features/catalog/widgets/product_grid_item.dart';
+import 'package:katari/features/catalog/widgets/category_filter_chip.dart';
 
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});

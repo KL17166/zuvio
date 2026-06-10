@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:katari/providers/consortium_provider.dart';
-import 'package:katari/data/services/storage_service.dart';
-import 'package:katari/device/biometric_service.dart';
+import 'package:katari/features/consortium/providers/consortium_provider.dart';
+import 'package:katari/core/services/storage_service.dart';
+import 'package:katari/core/services/biometric_service.dart';
 import 'package:katari/core/theme/app_colors.dart';
 import 'package:katari/core/theme/app_theme.dart';
 

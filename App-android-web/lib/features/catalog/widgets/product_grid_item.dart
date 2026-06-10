@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:katari/core/constants/routes.dart';
 import 'package:intl/intl.dart';
-import 'package:katari/data/models/product.dart';
-import 'package:katari/providers/consortium_provider.dart';
+import 'package:katari/features/catalog/models/product.dart';
+import 'package:katari/features/consortium/providers/consortium_provider.dart';
 import 'package:katari/core/theme/app_theme.dart';
 
 class ProductGridItem extends StatelessWidget {

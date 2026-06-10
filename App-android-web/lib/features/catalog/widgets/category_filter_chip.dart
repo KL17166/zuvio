@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:katari/data/models/product_category.dart';
-import 'package:katari/providers/consortium_provider.dart';
+import 'package:katari/features/catalog/models/product_category.dart';
+import 'package:katari/features/consortium/providers/consortium_provider.dart';
 import 'package:katari/core/theme/app_theme.dart';
 
 class CategoryFilterChip extends StatelessWidget {

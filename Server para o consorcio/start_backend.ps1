@@ -171,43 +171,55 @@ function Cleanup {
 function Start-PostgresDocker {
     Write-Step "Verificando PostgreSQL (Docker)..."
 
-    # Verifica se o Docker esta disponivel
+    $dockerAvailable = $false
     try {
         $dockerVer = docker version --format "{{.Server.Version}}" 2>&1
-        if ($LASTEXITCODE -ne 0) { throw "fail" }
+        if ($LASTEXITCODE -eq 0) {
+            $dockerAvailable = $true
+        }
     } catch {
-        throw "Docker nao encontrado ou nao esta rodando. Inicie o Docker Desktop."
+        # Docker não encontrado ou erro ao executar
     }
 
-    # Verifica se o container ja esta rodando
-    $running = docker ps --filter "name=katari-postgres" --filter "status=running" -q 2>&1
-    if ($running) {
-        Write-Ok "PostgreSQL ja esta rodando (container katari-postgres)"
+    if (-not $dockerAvailable) {
+        Write-Host "   [AVISO] Docker não está respondendo no host Windows." -ForegroundColor Yellow
+        Write-Host "   > Prosseguindo assumindo que o banco de dados já está rodando ou acessível." -ForegroundColor Gray
     } else {
-        Write-Info "Iniciando PostgreSQL via Docker Compose..."
-        docker compose up -d postgres 2>&1 | Out-Null
-        
-        # Aguarda ficar pronto
-        Write-Info "Aguardando PostgreSQL ficar pronto..."
-        $maxRetries = 30
-        for ($i = 0; $i -lt $maxRetries; $i++) {
-            try {
-                $health = docker inspect --format "{{.State.Health.Status}}" katari-postgres 2>&1
-                if ($health -match "healthy") {
-                    break
+        try {
+            # Verifica se o container ja esta rodando
+            $running = docker ps --filter "name=katari-postgres" --filter "status=running" -q 2>&1
+            if ($running) {
+                Write-Ok "PostgreSQL ja esta rodando (container katari-postgres)"
+            } else {
+                Write-Info "Iniciando PostgreSQL via Docker Compose..."
+                docker compose up -d postgres 2>&1 | Out-Null
+                
+                # Aguarda ficar pronto
+                Write-Info "Aguardando PostgreSQL ficar pronto..."
+                $maxRetries = 30
+                for ($i = 0; $i -lt $maxRetries; $i++) {
+                    try {
+                        $health = docker inspect --format "{{.State.Health.Status}}" katari-postgres 2>&1
+                        if ($health -match "healthy") {
+                            break
+                        }
+                    } catch { }
+                    Start-Sleep -Seconds 1
+                    Write-Host "." -NoNewline
                 }
-            } catch { }
-            Start-Sleep -Seconds 1
-            Write-Host "." -NoNewline
+                Write-Host ""
+                
+                # Verifica se subiu
+                $finalCheck = docker ps --filter "name=katari-postgres" --filter "status=running" -q 2>&1
+                if (-not $finalCheck) {
+                    Write-Host "   [AVISO] Falha ao iniciar PostgreSQL via Docker. Execute 'docker compose logs postgres' para ver os erros." -ForegroundColor Yellow
+                } else {
+                    Write-Ok "PostgreSQL iniciado com sucesso!"
+                }
+            }
+        } catch {
+            Write-Host "   [AVISO] Falha ao interagir com o Docker: $_" -ForegroundColor Yellow
         }
-        Write-Host ""
-        
-        # Verifica se subiu
-        $finalCheck = docker ps --filter "name=katari-postgres" --filter "status=running" -q 2>&1
-        if (-not $finalCheck) {
-            throw "Falha ao iniciar PostgreSQL. Execute 'docker compose logs postgres' para ver os erros."
-        }
-        Write-Ok "PostgreSQL iniciado com sucesso!"
     }
 
     # Rodar Prisma migrate
@@ -223,9 +235,13 @@ function Start-PostgresDocker {
             Write-Ok "Schema sincronizado via db push"
         }
     } catch {
-        Write-Info "Migration falhou, tentando db push..."
-        npx prisma db push --accept-data-loss 2>&1 | Out-Null
-        Write-Ok "Schema sincronizado via db push"
+        try {
+            Write-Info "Migration falhou, tentando db push..."
+            npx prisma db push --accept-data-loss 2>&1 | Out-Null
+            Write-Ok "Schema sincronizado via db push"
+        } catch {
+            Write-Host "   [AVISO] Falha ao executar migrations do Prisma. O backend pode falhar se o banco de dados não estiver pronto: $_" -ForegroundColor Yellow
+        }
     }
 }
 

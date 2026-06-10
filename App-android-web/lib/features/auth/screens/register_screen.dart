@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
-import 'package:katari/data/services/auth_service.dart';
+import 'package:katari/features/auth/services/auth_service.dart';
 import 'package:katari/core/theme/app_theme.dart';
 
 class RegisterScreen extends StatefulWidget {

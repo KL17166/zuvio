@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:katari/providers/consortium_provider.dart';
+import 'package:katari/features/consortium/providers/consortium_provider.dart';
 import 'package:katari/core/theme/app_theme.dart';
 import 'package:katari/features/checkout/widgets/pix_payment_card.dart';
 import 'package:katari/features/checkout/widgets/boleto_payment_card.dart';
@@ -17,8 +17,8 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
 
-  // ✅ NOVO: Timer de expiração
   Timer? _expirationTimer;
   Timer? _paymentCheckTimer;
   Duration _timeLeft = const Duration(minutes: 30);
@@ -29,15 +29,18 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 800),
     );
     _scaleAnimation = CurvedAnimation(
       parent: _animationController,
       curve: Curves.elasticOut,
     );
+    _fadeAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeIn,
+    );
     _animationController.forward();
 
-    // ✅ NOVO: Calcula tempo restante real e inicia timers
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _calculateTimeLeft();
       _startExpirationTimer();
@@ -53,7 +56,6 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen>
     super.dispose();
   }
 
-  // ✅ NOVO: Timer de expiração
   void _startExpirationTimer() {
     _expirationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
@@ -73,7 +75,6 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen>
     });
   }
 
-  // ✅ NOVO: Verificação automática de pagamento
   void _startPaymentVerification() {
     _paymentCheckTimer =
         Timer.periodic(const Duration(seconds: 10), (timer) async {
@@ -92,7 +93,7 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen>
           if (mounted) _showPaymentConfirmed();
         }
       } catch (e) {
-        // Erro silencioso, continua verificando
+        // Silent error
       }
     });
   }
@@ -118,45 +119,46 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen>
           });
         }
       } catch (e) {
-        // Fallback para 30 min se der erro no parse
         setState(() => _timeLeft = const Duration(minutes: 30));
       }
     }
   }
 
-  // ✅ NOVO: Dialog de expiração
   void _showExpiredDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Row(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
           children: [
-            Icon(Icons.timer_off, color: Colors.orange, size: 32),
-            SizedBox(width: 12),
-            Text('Código Expirado'),
+            Icon(Icons.timer_off_rounded, color: Colors.orange.shade600, size: 32),
+            const SizedBox(width: 12),
+            const Text('Código Expirado', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
         content: const Text(
-          'O código PIX expirou. Você pode gerar um novo código ou escolher outro método de pagamento.',
+          'O código de pagamento expirou. Você pode gerar um novo código ou escolher outro método de pagamento.',
+          style: TextStyle(fontSize: 15),
         ),
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.pop(context); // Fecha dialog
-              Navigator.pop(context); // Volta para payment_screen
+              Navigator.pop(context);
+              Navigator.pop(context);
             },
-            child: const Text('VOLTAR'),
+            child: const Text('VOLTAR', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context); // Fecha dialog
+              Navigator.pop(context);
               _generateNewPixCode();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('GERAR NOVO CÓDIGO'),
+            child: const Text('GERAR NOVO CÓDIGO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -164,69 +166,66 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen>
   }
 
   Future<void> _generateNewPixCode() async {
-    // Show loading
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      builder: (context) => const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)),
     );
 
     try {
       final provider = context.read<ConsortiumProvider>();
-      // Use the stored installmentId from the original payment generation
       final installmentId = provider.paymentData?['installmentId'];
       final idTokenPay = provider.paymentData?['idTokenPay'];
       if (installmentId != null) {
         await provider.generatePixForInstallment(installmentId, idTokenPay: idTokenPay);
       } else {
-        // Fallback to first installment if no ID stored
         await provider.payFirstInstallment('PIX');
       }
 
       if (!mounted) return;
-      Navigator.pop(context); // Close loading
+      Navigator.pop(context);
 
-      // Reset state
       setState(() {
         _isExpired = false;
       });
       _calculateTimeLeft();
-      _expirationTimer?.cancel(); // Cancel old timer before starting new
+      _expirationTimer?.cancel();
       _startExpirationTimer();
-      _paymentCheckTimer?.cancel(); // Cancel old timer before starting new
+      _paymentCheckTimer?.cancel();
       _startPaymentVerification();
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context); // Close loading
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Erro ao gerar novo código. Tente novamente.')),
+        SnackBar(
+          content: const Text('Erro ao gerar novo código. Tente novamente.'),
+          backgroundColor: Colors.red.shade600,
+        ),
       );
     }
   }
 
-  // ✅ NOVO: Dialog de pagamento confirmado
   void _showPaymentConfirmed() {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.green.shade50,
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                Icons.check_circle,
-                color: Colors.green.shade600,
-                size: 64,
+                Icons.check_circle_rounded,
+                color: Colors.green.shade500,
+                size: 72,
               ),
             ),
             const SizedBox(height: 24),
@@ -234,45 +233,47 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen>
               'Pagamento Confirmado!',
               style: TextStyle(
                 fontSize: 22,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w900,
+                color: AppTheme.secondaryColor,
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Seu pagamento foi identificado com sucesso!',
+            Text(
+              'Seu pagamento foi identificado com sucesso! Vamos continuar.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15),
+              style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/confirmation',
+                    (route) => false,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade500,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Text(
+                  'CONTINUAR',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ),
             ),
           ],
         ),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/confirmation',
-                  (route) => false,
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green.shade600,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'CONTINUAR',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -283,16 +284,18 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen>
 
     if (paymentData == null) {
       return Scaffold(
+        backgroundColor: Colors.grey.shade50,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 64, color: Colors.grey.shade400),
+              Icon(Icons.error_outline_rounded, size: 80, color: Colors.red.shade300),
               const SizedBox(height: 16),
-              const Text('Erro ao gerar pagamento'),
+              const Text('Erro ao gerar pagamento', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor, foregroundColor: Colors.white),
                 child: const Text('VOLTAR'),
               ),
             ],
@@ -303,18 +306,11 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen>
 
     final isPix = paymentData['type'] == 'PIX';
     final isSandbox = paymentData['provider'] == 'sandbox';
+    final primaryColor = isPix ? Colors.teal : Colors.orange;
 
     if (isSandbox) {
       return Scaffold(
         backgroundColor: Colors.grey.shade50,
-        appBar: AppBar(
-          title: const Text('Processando Pagamento'),
-          backgroundColor: Colors.white,
-          foregroundColor: AppTheme.secondaryColor,
-          elevation: 0,
-          centerTitle: true,
-          automaticallyImplyLeading: false, // Prevent back for now or handle it?
-        ),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(32.0),
@@ -326,6 +322,9 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen>
                   decoration: BoxDecoration(
                     color: Colors.blue.shade50,
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(color: Colors.blue.withValues(alpha: 0.2), blurRadius: 30, spreadRadius: 5),
+                    ],
                   ),
                   child: Icon(
                     Icons.hourglass_top_rounded,
@@ -337,8 +336,8 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen>
                 const Text(
                   'Pagamento em Análise',
                   style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
                     color: AppTheme.secondaryColor,
                   ),
                   textAlign: TextAlign.center,
@@ -359,25 +358,19 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen>
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pushNamedAndRemoveUntil(
-                        context,
-                        '/confirmation', // Go to confirmation/home
-                        (route) => false,
-                      );
+                      Navigator.pushNamedAndRemoveUntil(context, '/confirmation', (route) => false);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryColor,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 18),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                     child: const Text(
-                      'VOLTAR AO INÍCIO',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      'IR PARA CONFIRMAÇÃO',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1),
                     ),
                   ),
                 ),
@@ -391,195 +384,163 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen>
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: Text(isPix ? 'Pagamento via PIX' : 'Boleto Bancário'),
-        backgroundColor: Colors.white,
+        title: Text(
+          isPix ? 'Pagamento via PIX' : 'Boleto Bancário',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.grey.shade50,
         foregroundColor: AppTheme.secondaryColor,
         elevation: 0,
         centerTitle: true,
       ),
       body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            // Header com ícone animado
-            ScaleTransition(
-              scale: _scaleAnimation,
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: isPix
-                        ? [Colors.teal.shade400, Colors.teal.shade600]
-                        : [Colors.orange.shade400, Colors.orange.shade600],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (isPix ? Colors.teal : Colors.orange)
-                          .withValues(alpha: 0.3),
-                      blurRadius: 15,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
+            // Premium Header with Icon
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: ScaleTransition(
+                scale: _scaleAnimation,
                 child: Column(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+                            color: primaryColor.withValues(alpha: 0.2),
+                            blurRadius: 30,
+                            spreadRadius: 5,
+                            offset: const Offset(0, 10),
                           ),
                         ],
                       ),
                       child: Icon(
-                        isPix ? Icons.pix : Icons.qr_code_scanner,
-                        size: 60,
-                        color: isPix
-                            ? Colors.teal.shade600
-                            : Colors.orange.shade600,
+                        isPix ? Icons.pix_rounded : Icons.qr_code_scanner_rounded,
+                        size: 64,
+                        color: primaryColor.shade600,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                     Text(
                       isPix ? 'Escaneie o QR Code' : 'Boleto Gerado',
                       style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        color: AppTheme.secondaryColor,
+                        letterSpacing: -0.5,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       isPix
-                          ? 'Use o app do seu banco'
-                          : 'Pague até o vencimento',
-                      style: const TextStyle(
+                          ? 'Use o aplicativo do seu banco para pagar'
+                          : 'Realize o pagamento até o vencimento',
+                      style: TextStyle(
                         fontSize: 15,
-                        color: Colors.white70,
+                        color: Colors.grey.shade600,
                       ),
                     ),
                   ],
                 ),
-              ),
-            ),
-
-            // Timer e QR Code (PIX)
-            if (isPix)
-              PixPaymentCard(
-                paymentData: paymentData,
-                timeLeft: _timeLeft,
-                isExpired: _isExpired,
-              ),
-
-            // Boleto
-            if (!isPix)
-              BoletoPaymentCard(
-                paymentData: paymentData,
-              ),
-            const SizedBox(height: 24),
-            // Instruções
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(Icons.help_outline,
-                            color: Colors.blue.shade700, size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Como pagar',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.secondaryColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildInstructionStep(
-                      '1',
-                      isPix
-                          ? 'Abra o app do seu banco'
-                          : 'Copie a linha digitável'),
-                  _buildInstructionStep(
-                      '2',
-                      isPix
-                          ? 'Escolha a opção PIX'
-                          : 'Cole no app do seu banco'),
-                  _buildInstructionStep(
-                      '3',
-                      isPix
-                          ? 'Escaneie o QR Code ou cole o código'
-                          : 'Confirme o pagamento'),
-                  _buildInstructionStep('4',
-                      isPix ? 'Confirme o pagamento' : 'Guarde o comprovante'),
-                ],
               ),
             ),
             const SizedBox(height: 32),
-            // Botão pagar depois
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    '/confirmation',
-                    (route) => false,
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueGrey.shade600,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.schedule, size: 24),
-                    SizedBox(width: 12),
-                    Text(
-                      'PAGAR DEPOIS',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
+
+            // Payment Card (PIX or Boleto)
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: isPix
+                  ? PixPaymentCard(
+                      paymentData: paymentData,
+                      timeLeft: _timeLeft,
+                      isExpired: _isExpired,
+                    )
+                  : BoletoPaymentCard(
+                      paymentData: paymentData,
+                    ),
+            ),
+            const SizedBox(height: 32),
+
+            // Premium Instructions Container
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
                     ),
                   ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.help_outline_rounded, color: AppTheme.primaryColor, size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Como pagar?',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.secondaryColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    _buildInstructionStep('1', isPix ? 'Abra o aplicativo do seu banco' : 'Copie a linha digitável do boleto'),
+                    _buildInstructionStep('2', isPix ? 'Escolha a opção de pagamento via PIX' : 'Abra seu banco e vá em Pagamentos'),
+                    _buildInstructionStep('3', isPix ? 'Escaneie o QR Code ou cole o código' : 'Cole a linha digitável'),
+                    _buildInstructionStep('4', isPix ? 'Confirme as informações e o valor' : 'Confirme os dados e finalize'),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // Pay Later Button
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pushNamedAndRemoveUntil(context, '/confirmation', (route) => false);
+                  },
+                  icon: const Icon(Icons.schedule_rounded),
+                  label: const Text('PAGAR DEPOIS'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.grey.shade700,
+                    side: BorderSide(color: Colors.grey.shade300, width: 2),
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -591,34 +552,41 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen>
 
   Widget _buildInstructionStep(String number, String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              gradient: LinearGradient(
+                colors: [AppTheme.primaryColor, AppTheme.primaryColor.withValues(alpha: 0.8)],
+              ),
+              shape: BoxShape.circle,
             ),
             child: Center(
               child: Text(
                 number,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryColor,
+                  color: Colors.white,
                   fontSize: 14,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.grey.shade700,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.grey.shade700,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ),

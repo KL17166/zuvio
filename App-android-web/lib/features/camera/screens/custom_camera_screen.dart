@@ -15,7 +15,7 @@ class CustomCameraScreen extends StatefulWidget {
   State<CustomCameraScreen> createState() => _CustomCameraScreenState();
 }
 
-class _CustomCameraScreenState extends State<CustomCameraScreen> {
+class _CustomCameraScreenState extends State<CustomCameraScreen> with WidgetsBindingObserver {
   CameraController? _controller;
   List<CameraDescription> _cameras = [];
   bool _isCameraInitialized = false;
@@ -24,7 +24,22 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initCamera();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final CameraController? cameraController = _controller;
+    if (cameraController == null || !cameraController.value.isInitialized) {
+      return;
+    }
+
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+      cameraController.dispose();
+    } else if (state == AppLifecycleState.resumed) {
+      _initCamera();
+    }
   }
 
   Future<void> _initCamera() async {
@@ -54,7 +69,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
 
       _controller = CameraController(
         selectedCamera,
-        ResolutionPreset.high,
+        ResolutionPreset.medium, // Reduzido de high para evitar OOM Crash
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -109,6 +124,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller?.dispose();
     super.dispose();
   }

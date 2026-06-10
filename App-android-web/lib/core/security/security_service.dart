@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:freerasp/freerasp.dart';
-import 'package:katari/data/services/storage_service.dart';
+import 'package:katari/core/services/storage_service.dart';
 
 /// Provides multi-layer runtime protection:
 /// 1. freeRASP — Root/Jailbreak, hooks, emulator, app integrity, debug

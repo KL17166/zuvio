@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:katari/data/models/product.dart';
-import 'package:katari/data/models/active_contract.dart';
-import 'package:katari/data/models/consortium_plan.dart';
-import 'package:katari/data/services/api_service.dart';
-import 'package:katari/data/services/storage_service.dart';
+import 'package:katari/features/catalog/models/product.dart';
+import 'package:katari/features/consortium/models/active_contract.dart';
+import 'package:katari/features/consortium/models/consortium_plan.dart';
+import 'package:katari/core/network/api_service.dart';
+import 'package:katari/core/services/storage_service.dart';
 
 /// Manages contract/subscription state:
 /// - Active contracts, subscription creation

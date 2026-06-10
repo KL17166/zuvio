@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:katari/providers/auth_provider.dart';
+import 'package:katari/features/auth/providers/auth_provider.dart';
 import 'package:katari/core/theme/app_theme.dart';
 import 'package:katari/features/camera/screens/custom_camera_screen.dart';
 

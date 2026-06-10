@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:katari/core/theme/app_colors.dart';
 import 'package:katari/core/theme/app_spacing.dart';
-import 'app_button.dart';
+import 'package:katari/shared/widgets/app_button.dart';
 
 /// Standard empty-state layout: icon → title → subtitle → optional CTA.
 ///

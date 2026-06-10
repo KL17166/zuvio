@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:katari/core/theme/app_colors.dart';
 import 'package:katari/core/theme/app_theme.dart';
-import 'package:katari/data/models/active_contract.dart';
+import 'package:katari/features/consortium/models/active_contract.dart';
 
 class StatementScreen extends StatelessWidget {
   final ActiveContract contract;

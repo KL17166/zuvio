@@ -1,7 +1,7 @@
 # ══════════════════════════════════════════════
-# KATARI — PostgreSQL via Docker
+# KATARI — PostgreSQL + Redis via Docker
 # ══════════════════════════════════════════════
-# Sobe APENAS o PostgreSQL. O backend Node.js
+# Sobe PostgreSQL e Redis. O backend Node.js
 # continua rodando local via npm run dev.
 # ══════════════════════════════════════════════
 
@@ -11,7 +11,7 @@ services:
     container_name: katari-postgres
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "5434:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: "099"
@@ -20,6 +20,19 @@ services:
       - katari_pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d consorcio"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: katari-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 10

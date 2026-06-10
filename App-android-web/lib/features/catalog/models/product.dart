@@ -1,5 +1,5 @@
-import 'package:katari/data/models/product_category.dart';
-import 'package:katari/data/models/consortium_plan.dart';
+import 'package:katari/features/catalog/models/product_category.dart';
+import 'package:katari/features/consortium/models/consortium_plan.dart';
 
 class Product {
   final String id;

@@ -3,8 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:katari/core/theme/app_colors.dart';
 import 'package:katari/core/theme/app_theme.dart';
-import 'package:katari/data/models/active_contract.dart';
-import 'package:katari/data/services/api_service.dart';
+import 'package:katari/features/consortium/models/active_contract.dart';
+import 'package:katari/core/network/api_service.dart';
 
 class BidScreen extends StatefulWidget {
   final ActiveContract contract;

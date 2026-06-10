@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:katari/data/services/api_service.dart';
-import 'package:katari/data/services/auth_service.dart';
-import 'package:katari/data/services/storage_service.dart';
+import 'package:katari/core/network/api_service.dart';
+import 'package:katari/features/auth/services/auth_service.dart';
+import 'package:katari/core/services/storage_service.dart';
 
 /// Manages authentication-related state:
 /// - User profile (name, email, cpf, etc.)

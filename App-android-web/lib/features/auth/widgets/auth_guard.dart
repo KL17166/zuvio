@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:katari/data/services/storage_service.dart';
-import 'package:katari/data/services/api_service.dart';
+import 'package:katari/core/services/storage_service.dart';
+import 'package:katari/core/network/api_service.dart';
 import 'package:katari/core/constants/routes.dart';
 
 /// Guards protected routes by validating the auth token against the server.

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:katari/data/models/product.dart';
-import 'package:katari/data/models/product_category.dart';
-import 'package:katari/data/models/active_contract.dart';
-import 'package:katari/data/models/consortium_plan.dart';
-import 'package:katari/providers/auth_provider.dart';
-import 'package:katari/providers/product_provider.dart';
-import 'package:katari/providers/contract_provider.dart';
-import 'package:katari/providers/payment_provider.dart';
+import 'package:katari/features/catalog/models/product.dart';
+import 'package:katari/features/catalog/models/product_category.dart';
+import 'package:katari/features/consortium/models/active_contract.dart';
+import 'package:katari/features/consortium/models/consortium_plan.dart';
+import 'package:katari/features/auth/providers/auth_provider.dart';
+import 'package:katari/features/catalog/providers/product_provider.dart';
+import 'package:katari/features/consortium/providers/contract_provider.dart';
+import 'package:katari/features/checkout/providers/payment_provider.dart';
 
 /// FACADE — Delegates to the 4 focused providers for backward compatibility.
 ///

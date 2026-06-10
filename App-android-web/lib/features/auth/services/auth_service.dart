@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:katari/core/constants/api_constants.dart';
-import 'package:katari/data/services/storage_service.dart';
-import 'package:katari/device/device_service.dart';
+import 'package:katari/core/services/storage_service.dart';
+import 'package:katari/core/services/device_service.dart';
 import 'package:katari/core/security/request_signer.dart';
 
 class AuthService {

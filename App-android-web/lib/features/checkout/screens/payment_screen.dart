@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:katari/providers/consortium_provider.dart';
+import 'package:katari/features/consortium/providers/consortium_provider.dart';
 import 'package:katari/core/theme/app_theme.dart';
 import 'package:katari/core/constants/routes.dart';
 
@@ -15,153 +15,183 @@ class PaymentScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ConsortiumProvider>();
-
-    // ✅ NOVO: Pega valor retornado pelo backend
     final installmentValue = provider.firstInstallmentValue;
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Pagamento'),
+        title: const Text('Pagamento', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         foregroundColor: AppTheme.secondaryColor,
         elevation: 0,
         centerTitle: true,
       ),
       body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
+            // Premium Header Card (Credit Card Style)
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppTheme.primaryColor,
-                    AppTheme.primaryColor.withValues(alpha: 0.8)
+                    AppTheme.secondaryColor,
+                    AppTheme.secondaryColor.withValues(alpha: 0.8),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.3),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
+                    color: AppTheme.secondaryColor.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
                 ],
               ),
-              child: Row(
+              child: Stack(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.payment,
-                      color: Colors.white,
-                      size: 32,
+                  // Decorative shapes
+                  Positioned(
+                    right: -20,
+                    top: -20,
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Escolha como pagar',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Primeira parcela do consórcio',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.white70,
-                          ),
-                        ),
-                        // ✅ NOVO: Mostra valor
-                        const SizedBox(height: 8),
-                        Text(
-                          _formatCurrency(installmentValue),
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ],
+                  Positioned(
+                    left: -30,
+                    bottom: -30,
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
                     ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Primeira parcela',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Icon(Icons.payment_rounded, color: Colors.white.withValues(alpha: 0.8)),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _formatCurrency(installmentValue),
+                        style: const TextStyle(
+                          fontSize: 36,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: -1,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'Adesão do Consórcio',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 40),
+            
             const Text(
-              'Métodos de Pagamento',
+              'Como você prefere pagar?',
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
                 color: AppTheme.secondaryColor,
+                letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+            
+            // Payment Options
             _buildPaymentOption(
               context,
-              icon: Icons.pix,
+              icon: Icons.pix_rounded,
               title: 'PIX',
-              subtitle: 'Aprovação imediata',
+              subtitle: 'Aprovação na hora. Mais rápido e seguro.',
               badge: 'RECOMENDADO',
-              badgeColor: Colors.green,
-              gradient: [Colors.teal.shade400, Colors.teal.shade600],
+              badgeColor: Colors.teal.shade500,
+              gradient: [Colors.teal.shade500, Colors.teal.shade700],
               onTap: () => _processPayment(context, 'PIX'),
             ),
             const SizedBox(height: 16),
             _buildPaymentOption(
               context,
-              icon: Icons.qr_code_scanner,
+              icon: Icons.qr_code_scanner_rounded,
               title: 'Boleto Bancário',
-              subtitle: 'Vencimento em 3 dias úteis',
-              gradient: [Colors.orange.shade400, Colors.orange.shade600],
+              subtitle: 'Aprovação em até 3 dias úteis.',
+              gradient: [Colors.orange.shade500, Colors.orange.shade700],
               onTap: () => _processPayment(context, 'BOLETO'),
             ),
-            const SizedBox(height: 32),
-            // Informações adicionais
+            const SizedBox(height: 40),
+            
+            // Security Info
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
               child: Column(
                 children: [
                   _buildInfoRow(
-                    Icons.security,
-                    'Pagamento Seguro',
+                    Icons.shield_rounded,
+                    'Pagamento 100% Seguro',
                     'Criptografia de ponta a ponta',
                   ),
-                  const SizedBox(height: 16),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Divider(height: 1),
+                  ),
                   _buildInfoRow(
-                    Icons.support_agent,
+                    Icons.support_agent_rounded,
                     'Suporte 24/7',
                     'Estamos sempre prontos para ajudar',
-                  ),
-                  const SizedBox(height: 16),
-                  _buildInfoRow(
-                    Icons.verified_user,
-                    'Dados Protegidos',
-                    'Suas informações estão seguras',
                   ),
                 ],
               ),
@@ -188,8 +218,8 @@ class PaymentScreen extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: gradient[0].withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -198,6 +228,8 @@ class PaymentScreen extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(20),
+          highlightColor: Colors.white.withValues(alpha: 0.1),
+          splashColor: Colors.white.withValues(alpha: 0.2),
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -211,14 +243,14 @@ class PaymentScreen extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(16),
+                    shape: BoxShape.circle,
                   ),
-                  child: Icon(icon, color: Colors.white, size: 32),
+                  child: Icon(icon, color: Colors.white, size: 28),
                 ),
-                const SizedBox(width: 20),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,9 +260,10 @@ class PaymentScreen extends StatelessWidget {
                           Text(
                             title,
                             style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
                               color: Colors.white,
+                              letterSpacing: 0.5,
                             ),
                           ),
                           if (badge != null) ...[
@@ -242,14 +275,15 @@ class PaymentScreen extends StatelessWidget {
                               ),
                               decoration: BoxDecoration(
                                 color: badgeColor ?? Colors.green,
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 badge,
                                 style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
                                   color: Colors.white,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
                             ),
@@ -260,24 +294,18 @@ class PaymentScreen extends StatelessWidget {
                       Text(
                         subtitle,
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 13,
                           color: Colors.white70,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.arrow_forward,
-                    color: Colors.white,
-                    size: 20,
-                  ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: Colors.white.withValues(alpha: 0.6),
+                  size: 16,
                 ),
               ],
             ),
@@ -291,12 +319,12 @@ class PaymentScreen extends StatelessWidget {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: AppTheme.primaryColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
+            shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: AppTheme.primaryColor, size: 20),
+          child: Icon(icon, color: AppTheme.primaryColor, size: 24),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -306,16 +334,18 @@ class PaymentScreen extends StatelessWidget {
               Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 15,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.secondaryColor,
                 ),
               ),
+              const SizedBox(height: 4),
               Text(
                 subtitle,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 14,
                   color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -328,37 +358,41 @@ class PaymentScreen extends StatelessWidget {
   Future<void> _processPayment(BuildContext context, String method) async {
     final provider = context.read<ConsortiumProvider>();
 
-    // ✅ NOVO: Loading melhorado
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(
-              color: AppTheme.primaryColor,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              method == 'PIX' ? 'Gerando código PIX...' : 'Gerando boleto...',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+        content: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(
+                color: AppTheme.primaryColor,
+                strokeWidth: 3,
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Aguarde alguns instantes',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
+              const SizedBox(height: 24),
+              Text(
+                method == 'PIX' ? 'Gerando código PIX...' : 'Gerando boleto...',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.secondaryColor,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                'Aguarde alguns instantes',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -374,18 +408,24 @@ class PaymentScreen extends StatelessWidget {
       if (context.mounted) {
         Navigator.pop(context); // Close dialog
 
-        // ✅ NOVO: Erro detalhado
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(24),
             ),
-            title: const Row(
+            title: Row(
               children: [
-                Icon(Icons.error_outline, color: Colors.red, size: 32),
-                SizedBox(width: 12),
-                Text('Erro no Pagamento'),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.error_outline_rounded, color: Colors.red.shade600, size: 24),
+                ),
+                const SizedBox(width: 12),
+                const Text('Erro', style: TextStyle(fontWeight: FontWeight.bold)),
               ],
             ),
             content: const Text(
@@ -395,7 +435,7 @@ class PaymentScreen extends StatelessWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('FECHAR'),
+                child: const Text('FECHAR', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
               ),
               ElevatedButton(
                 onPressed: () {
@@ -404,8 +444,9 @@ class PaymentScreen extends StatelessWidget {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('TENTAR NOVAMENTE'),
+                child: const Text('TENTAR NOVAMENTE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ],
           ),

@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:katari/core/theme/app_theme.dart';
 import 'package:katari/core/constants/routes.dart';
-import 'package:katari/providers/consortium_provider.dart';
+import 'package:katari/features/consortium/providers/consortium_provider.dart';
 
 class ContractScreen extends StatefulWidget {
   const ContractScreen({super.key});

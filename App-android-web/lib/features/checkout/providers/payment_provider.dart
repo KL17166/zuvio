@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:katari/data/services/api_service.dart';
+import 'package:katari/core/network/api_service.dart';
 
 /// Manages payment state:
 /// - PIX generation and payment data

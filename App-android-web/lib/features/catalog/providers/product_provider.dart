@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:katari/data/models/product.dart';
-import 'package:katari/data/models/product_category.dart';
-import 'package:katari/data/models/consortium_plan.dart';
-import 'package:katari/data/services/api_service.dart';
+import 'package:katari/features/catalog/models/product.dart';
+import 'package:katari/features/catalog/models/product_category.dart';
+import 'package:katari/features/consortium/models/consortium_plan.dart';
+import 'package:katari/core/network/api_service.dart';
 
 /// Manages product catalog state:
 /// - Product list, fetching, search, filters
