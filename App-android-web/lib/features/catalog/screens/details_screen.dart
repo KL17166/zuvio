@@ -597,8 +597,8 @@ class _DetailsScreenState extends State<DetailsScreen>
 
   Widget _buildPlanSelection(product, ConsortiumProvider provider) {
     // Sort plans by duration if needed, but usually backend sends sorted.
-    // Ensure we use product.plans
-    final plans = product.plans;
+    // Ensure we use product.plans and filter by maxDuration
+    final plans = product.plans.where((p) => p.durationMonths <= product.maxDuration).toList();
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -620,6 +620,33 @@ class _DetailsScreenState extends State<DetailsScreen>
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.info_outline, size: 18, color: AppTheme.primaryColor),
+                const SizedBox(width: 8),
+                Text(
+                  'Duração máxima permitida: ${product.maxDuration} meses',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 20),

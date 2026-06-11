@@ -94,9 +94,17 @@ class AuthProvider with ChangeNotifier {
     userName = name;
 
     await _saveProfileToStorage();
+    String apiBirthDate = birthDate;
+    if (birthDate.contains('/')) {
+      final parts = birthDate.split('/');
+      if (parts.length == 3) {
+        apiBirthDate = '${parts[2]}-${parts[1]}-${parts[0]}';
+      }
+    }
+
     await _apiService.updateUserProfile({
       'name': name,
-      'birthDate': birthDate,
+      'birthDate': apiBirthDate,
       'phone': phone,
     });
     notifyListeners();

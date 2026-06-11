@@ -237,10 +237,16 @@ class _HomeScreenState extends State<HomeScreen> {
     final contracts = provider.activeContracts;
     final dateFormat = DateFormat('dd/MM/yyyy');
 
+    // Guard: if contracts list is empty (e.g. all filtered as orphans),
+    // show the promotional banner instead of a blank space
+    if (contracts.isEmpty) {
+      return _buildPromotionalBanner();
+    }
+
     return Column(
       children: [
         SizedBox(
-          height: 321,
+          height: 370,
           child: PageView.builder(
             controller: _contractsPageController,
             onPageChanged: (index) {
@@ -459,17 +465,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  Row(
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Expanded(
-                        child: Text(
-                          NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$')
-                              .format(contract.getInstallmentValue(1)),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      Text(
+                        NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$')
+                            .format(contract.getInstallmentValue(1)),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       ElevatedButton.icon(

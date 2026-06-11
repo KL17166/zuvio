@@ -41,6 +41,7 @@ dependencies:
   freerasp: ^7.4.0
   crypto: ^3.0.7
   http_parser: ^4.1.2
+  encrypt: ^5.0.3
 
   # Assets
   # assets:

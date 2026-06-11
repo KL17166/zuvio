@@ -21,6 +21,8 @@ class Product {
   final String? brand;
   final String? model;
   final int? year;
+  final int minDuration;
+  final int maxDuration;
 
   // Flexible specs — JSON with type-specific details
   final Map<String, dynamic> specs;
@@ -41,6 +43,8 @@ class Product {
     this.brand,
     this.model,
     this.year,
+    required this.minDuration,
+    required this.maxDuration,
     this.specs = const {},
   });
 
@@ -129,6 +133,8 @@ class Product {
       brand: safeParse<String>(json['brand']),
       model: safeParse<String>(json['model']),
       year: safeParse<int>(json['year']),
+      minDuration: safeParse<int>(json['minDuration']) ?? 0,
+      maxDuration: safeParse<int>(json['maxDuration']) ?? 0,
       specs: specs,
     );
   }

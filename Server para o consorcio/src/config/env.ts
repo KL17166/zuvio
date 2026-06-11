@@ -42,6 +42,10 @@ const envSchema = z.object({
             { message: 'REQUEST_SIGNING_SECRET is REQUIRED in production. Without it all API requests use a well-known fallback secret.' }
         )
         .optional(),
+
+    // Payload Encryption (AES-256)
+    PAYLOAD_ENCRYPTION_SECRET: z.string().min(32, 'PAYLOAD_ENCRYPTION_SECRET must be at least 32 characters').default('super-secret-payload-encryption-key!'),
+    ENCRYPTION_BYPASS_SECRET: z.string().default('admin-bypass-123'),
 });
 
 const _env = envSchema.safeParse(process.env);

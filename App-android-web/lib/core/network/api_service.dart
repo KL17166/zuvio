@@ -9,6 +9,7 @@ import 'package:katari/core/services/storage_service.dart';
 import 'package:katari/core/services/device_service.dart';
 import 'package:katari/core/security/secure_http_client.dart';
 import 'package:katari/core/security/request_signer.dart';
+import 'package:katari/core/security/payload_obfuscator.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -20,6 +21,21 @@ class ApiService {
 
   /// Secured HTTP client with SSL pinning (active in release mode only)
   http.Client get _http => SecureHttpClient().client;
+
+  dynamic _decodeResponse(http.Response response) {
+    if (response.body.isEmpty) return null;
+    try {
+      final decoded = json.decode(response.body);
+      if (decoded is Map<String, dynamic> && decoded.containsKey('p') && decoded.containsKey('iv') && decoded.containsKey('t')) {
+        final decryptedRaw = PayloadObfuscator.decrypt(decoded);
+        return json.decode(decryptedRaw);
+      }
+      return decoded;
+    } catch (e) {
+      debugPrint('ApiService: Failed to decode/decrypt response: $e');
+      throw Exception('Failed to decode response');
+    }
+  }
 
   /// Helper para obter headers com autenticação e assinatura HMAC
   Future<Map<String, String>> _getAuthHeaders({
@@ -74,7 +90,7 @@ class ApiService {
       final response = await _http.get(url);
 
       if (response.statusCode == 200) {
-        final List<dynamic> jsonList = json.decode(response.body);
+        final List<dynamic> jsonList = _decodeResponse(response);
         debugPrint('ApiService: Decoding ${jsonList.length} products...');
 
         final List<Product> products =
@@ -100,7 +116,7 @@ class ApiService {
       final response = await _http.get(url);
 
       if (response.statusCode == 200) {
-        return Product.fromJson(json.decode(response.body));
+        return Product.fromJson(_decodeResponse(response));
       }
       return null;
     } catch (e) {
@@ -123,7 +139,7 @@ class ApiService {
       final response = await _http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
-        final List<dynamic> jsonList = json.decode(response.body);
+        final List<dynamic> jsonList = _decodeResponse(response);
         debugPrint('ApiService: Loaded ${jsonList.length} subscriptions');
         return jsonList.cast<Map<String, dynamic>>();
       } else {
@@ -163,7 +179,8 @@ class ApiService {
       if (documentBackUrl != null) body['documentBackUrl'] = documentBackUrl;
       if (selfieUrl != null) body['selfieUrl'] = selfieUrl;
 
-      final bodyStr = json.encode(body);
+      final rawBodyStr = json.encode(body);
+      final bodyStr = PayloadObfuscator.encrypt(rawBodyStr);
       final headers = await _getAuthHeaders(
           method: 'POST', path: ApiConstants.subscriptions, body: bodyStr);
 
@@ -174,9 +191,9 @@ class ApiService {
       );
 
       if (response.statusCode == 201) {
-        return json.decode(response.body);
+        return _decodeResponse(response);
       } else {
-        final error = json.decode(response.body);
+        final error = _decodeResponse(response);
         debugPrint(
             'ApiService: Error creating subscription: ${error['error'] ?? error['message']}');
         return {
@@ -206,12 +223,13 @@ class ApiService {
       final url = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.bids}');
       debugPrint('ApiService: Creating bid at $url');
 
-      final bodyStr = json.encode({
+      final rawBodyStr = json.encode({
         'subscriptionId': subscriptionId,
         'type': type,
         'percentage': percentage,
         'amount': amount,
       });
+      final bodyStr = PayloadObfuscator.encrypt(rawBodyStr);
       final headers = await _getAuthHeaders(
           method: 'POST', path: ApiConstants.bids, body: bodyStr);
 
@@ -222,9 +240,9 @@ class ApiService {
       );
 
       if (response.statusCode == 201) {
-        return json.decode(response.body);
+        return _decodeResponse(response);
       } else {
-        final error = json.decode(response.body);
+        final error = _decodeResponse(response);
         debugPrint('ApiService: Error creating bid: ${error['error']}');
         return {'error': error['error'] ?? 'Erro ao criar lance'};
       }
@@ -243,7 +261,7 @@ class ApiService {
       final response = await _http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
-        final List<dynamic> jsonList = json.decode(response.body);
+        final List<dynamic> jsonList = _decodeResponse(response);
         return jsonList.cast<Map<String, dynamic>>();
       }
       return [];
@@ -266,7 +284,7 @@ class ApiService {
       final response = await _http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
-        final List<dynamic> jsonList = json.decode(response.body);
+        final List<dynamic> jsonList = _decodeResponse(response);
         return jsonList.cast<Map<String, dynamic>>();
       }
       return [];
@@ -285,7 +303,8 @@ class ApiService {
 
       final body = <String, dynamic>{};
       if (idTokenPay != null) body['idTokenPay'] = idTokenPay;
-      final bodyStr = json.encode(body);
+      final rawBodyStr = json.encode(body);
+      final bodyStr = PayloadObfuscator.encrypt(rawBodyStr);
 
       final headers = await _getAuthHeaders(
           method: 'POST', path: pixPath, body: bodyStr);
@@ -297,9 +316,9 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        return _decodeResponse(response);
       } else {
-        final error = json.decode(response.body);
+        final error = _decodeResponse(response);
         debugPrint('ApiService: Error generating PIX: ${error['error']}');
         return {'error': error['error'] ?? 'Erro ao gerar PIX'};
       }
@@ -318,7 +337,8 @@ class ApiService {
 
       final body = <String, dynamic>{};
       if (idTokenPay != null) body['idTokenPay'] = idTokenPay;
-      final bodyStr = json.encode(body);
+      final rawBodyStr = json.encode(body);
+      final bodyStr = PayloadObfuscator.encrypt(rawBodyStr);
 
       final headers = await _getAuthHeaders(
           method: 'POST', path: boletoPath, body: bodyStr);
@@ -330,9 +350,9 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        return _decodeResponse(response);
       } else {
-        final error = json.decode(response.body);
+        final error = _decodeResponse(response);
         debugPrint('ApiService: Error generating Boleto: ${error['error']}');
         return {'error': error['error'] ?? 'Erro ao gerar Boleto'};
       }
@@ -349,7 +369,8 @@ class ApiService {
           Uri.parse('${ApiConstants.baseUrl}${ApiConstants.authProfile}');
       debugPrint('ApiService: Updating profile at $url');
 
-      final bodyStr = json.encode(data);
+      final rawBodyStr = json.encode(data);
+      final bodyStr = PayloadObfuscator.encrypt(rawBodyStr);
       final headers = await _getAuthHeaders(
           method: 'PUT', path: ApiConstants.authProfile, body: bodyStr);
 
@@ -421,7 +442,7 @@ class ApiService {
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = _decodeResponse(response);
         return data['url'];
       } else {
         debugPrint('ApiService: Error uploading file: ${response.body}');

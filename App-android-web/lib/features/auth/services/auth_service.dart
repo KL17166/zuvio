@@ -5,6 +5,7 @@ import 'package:katari/core/constants/api_constants.dart';
 import 'package:katari/core/services/storage_service.dart';
 import 'package:katari/core/services/device_service.dart';
 import 'package:katari/core/security/request_signer.dart';
+import 'package:katari/core/security/payload_obfuscator.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -14,6 +15,21 @@ class AuthService {
   final StorageService _storageService = StorageService();
   final DeviceService _deviceService = DeviceService();
 
+  dynamic _decodeResponse(http.Response response) {
+    if (response.body.isEmpty) return null;
+    try {
+      final decoded = json.decode(response.body);
+      if (decoded is Map<String, dynamic> && decoded.containsKey('p') && decoded.containsKey('iv') && decoded.containsKey('t')) {
+        final decryptedRaw = PayloadObfuscator.decrypt(decoded);
+        return json.decode(decryptedRaw);
+      }
+      return decoded;
+    } catch (e) {
+      debugPrint('AuthService: Failed to decode/decrypt response: $e');
+      throw Exception('Failed to decode response');
+    }
+  }
+
   Future<String?> signIn(String cpf, String password) async {
     try {
       final url = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.authLogin}');
@@ -21,7 +37,8 @@ class AuthService {
       // Ensure device info is loaded for security headers
       await _deviceService.init();
 
-      final bodyStr = jsonEncode({'cpf': cpf, 'password': password});
+      final rawBodyStr = jsonEncode({'cpf': cpf, 'password': password});
+      final bodyStr = PayloadObfuscator.encrypt(rawBodyStr);
 
       final response = await http.post(
         url,
@@ -35,7 +52,7 @@ class AuthService {
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final data = _decodeResponse(response);
         final token = data['token'] as String;
         final user = data['user'] as Map<String, dynamic>;
 
@@ -73,7 +90,7 @@ class AuthService {
       } else {
         debugPrint('Login failed: ${response.statusCode}');
         try {
-          final data = jsonDecode(response.body);
+          final data = _decodeResponse(response);
           return data['message'] ??
               'Falha ao realizar login (${response.statusCode})';
         } catch (_) {
@@ -148,7 +165,7 @@ class AuthService {
       // Ensure device info is loaded for security headers
       await _deviceService.init();
 
-      final bodyStr = jsonEncode({
+      final rawBodyStr = jsonEncode({
         'name': name,
         'email': email,
         'cpf': cpf,
@@ -156,6 +173,7 @@ class AuthService {
         'birthDate': birthDate,
         'phone': phone
       });
+      final bodyStr = PayloadObfuscator.encrypt(rawBodyStr);
 
       final response = await http.post(
         url,
@@ -175,7 +193,7 @@ class AuthService {
       } else {
         // Try to parse error message from server
         try {
-          final data = jsonDecode(response.body);
+          final data = _decodeResponse(response);
           final message = data['message'] ?? 'Erro desconhecido';
           return message;
         } catch (_) {

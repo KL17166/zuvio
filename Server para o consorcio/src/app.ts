@@ -113,6 +113,9 @@ const allowedOrigins = (env.ALLOWED_ORIGINS?.split(',') || [
     'http://10.0.2.2:3000', // Android emulator
 ]).map(origin => origin.trim());
 
+// Matches any localhost / 127.0.0.1 origin regardless of port (Flutter web uses dynamic ports)
+const localhostOriginRe = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+
 app.use(cors({
     origin: (origin, callback) => {
         // Strict blocking of no-origin requests in production
@@ -137,6 +140,11 @@ app.use(cors({
             return callback(null, true);
         }
 
+        // Allow any localhost / 127.0.0.1 origin in development (Flutter web uses dynamic ports)
+        if (env.NODE_ENV === 'development' && localhostOriginRe.test(origin)) {
+            return callback(null, true);
+        }
+
         if (allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
@@ -150,7 +158,7 @@ app.use(cors({
 // Rate Limiting - Geral (IP + Token se possível - aqui simplificado por IP)
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 100, // Limite de 100 requests por IP
+    max: 300, // 300 requests por IP em 15 min (Flutter faz várias chamadas legítimas)
     message: { error: 'Muitas requisições. Tente novamente em 15 minutos.' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -225,8 +233,18 @@ const bidLimiter = rateLimit({
     legacyHeaders: false,
 });
 
-// Rate Limiting - Subscription creation: 3 per hour per user
-const subscriptionLimiter = rateLimit({
+// Rate Limiting - Subscription READ (listing): 120 per 15 min per user — lenient for normal usage
+const subscriptionReadLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 120,
+    keyGenerator: userIdFromBearer,
+    message: { error: 'Muitas consultas de contratos. Aguarde alguns minutos.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Rate Limiting - Subscription CREATE: 3 per hour per user (prevents spam)
+const subscriptionCreateLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 3,
     keyGenerator: userIdFromBearer,
@@ -250,7 +268,13 @@ app.use('/api/auth/login', apiAuthLimiter);
 app.use('/api/auth/register', apiRegisterLimiter);
 app.use('/api/payments', paymentGenerationLimiter);
 app.use('/api/bids', bidLimiter);
-app.use('/api/subscriptions', subscriptionLimiter);
+// Method-aware Rate Limiting for Subscriptions (Avoids path-to-regexp wildcard errors)
+app.use('/api/subscriptions', (req, res, next) => {
+    if (req.method === 'POST' && (req.path === '/' || req.path === '')) {
+        return subscriptionCreateLimiter(req, res, next);
+    }
+    return subscriptionReadLimiter(req, res, next);
+});
 app.use('/api/kyc/submit', kycSubmitLimiter);
 app.use('/admin', adminGeneralLimiter); // Rate limit geral no admin
 app.use('/admin/login', adminAuthLimiter); // Rate limit estrito no login admin
@@ -289,6 +313,10 @@ app.use('/admin', jsChallengeMiddleware);
 // HMAC Request Signature Validation (anti-replay / anti-tampering)
 import { requestSignatureMiddleware } from './middlewares/requestSignatureMiddleware';
 app.use(requestSignatureMiddleware);
+
+// Payload Obfuscation Middleware (Encryption/Decryption)
+import { payloadObfuscationMiddleware } from './middlewares/payloadObfuscationMiddleware';
+app.use(payloadObfuscationMiddleware);
 
 // View Engine Setup
 const viewsPath = path.join(__dirname, 'views');

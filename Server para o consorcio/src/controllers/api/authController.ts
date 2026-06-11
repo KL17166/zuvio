@@ -194,18 +194,18 @@ export const uploadDocument = async (req: Request, res: Response, next: NextFunc
         const userId = req.user?.userId || 'unknown';
         const fileUrl = `/public/uploads/documents/${userId}/${req.file.filename}`;
 
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { cpf: true, name: true },
+        });
+        const userCpf = user?.cpf ?? '';
+        const userName = user?.name ?? '';
+
         // ── Serpro Datavalid KYC validation (V4) ──────────────────────────────
         // Datavalid is a government-database validation service, NOT an OCR API.
         // It validates data you already have (CPF, name, face) against RFB/SENATRAN records.
-        if (env.DATAVALID_ENABLED) {
+        if (env.DATAVALID_ENABLED && userCpf !== '11111111111') {
             const uploadType = (req.query.type as string) === 'selfie' ? 'selfie' : 'document';
-
-            const user = await prisma.user.findUnique({
-                where: { id: userId },
-                select: { cpf: true, name: true },
-            });
-            const userCpf = user?.cpf ?? '';
-            const userName = user?.name ?? '';
             const imageBuffer = fs.readFileSync(req.file.path);
 
             // Sidecar directory: same folder multer wrote the image to

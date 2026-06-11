@@ -92,8 +92,17 @@ router.get('/subscriptions/:userId', authenticate, checkOwnership('user', 'userI
             orderBy: { createdAt: 'desc' }
         });
 
-        // Format response for app
-        const formattedSubscriptions = subscriptions.map((sub: any) => {
+        // Format response for app — skip subscriptions whose product was deleted
+        const orphanIds: string[] = [];
+        const formattedSubscriptions = subscriptions
+            .filter((sub: any) => {
+                if (!sub.plan?.product) {
+                    orphanIds.push(sub.id);
+                    return false;
+                }
+                return true;
+            })
+            .map((sub: any) => {
             // Determine next installment index (0-based, includes adesão)
             const paidIndices = new Set(sub.installments.filter((i: any) => i.status === 'PAID').map((i: any) => i.number));
             let nextIndex = sub.totalInstallments + 1;
@@ -155,6 +164,15 @@ router.get('/subscriptions/:userId', authenticate, checkOwnership('user', 'userI
                 }))
             };
         });
+
+        // Auto-cancel orphan subscriptions (product deleted) so they never appear again
+        if (orphanIds.length > 0) {
+            logger.warn(`Auto-cancelling ${orphanIds.length} orphan subscription(s) with deleted products: ${orphanIds.join(', ')}`);
+            await prisma.subscription.updateMany({
+                where: { id: { in: orphanIds } },
+                data: { status: 'CANCELLED', balanceDue: 0 }
+            });
+        }
 
         res.json(formattedSubscriptions);
     } catch (error) {
@@ -321,18 +339,21 @@ router.post('/subscriptions', authenticate, async (req: Request, res: Response) 
 
         // 2. Validar Campos Obrigatórios
         if (!userId || !planId || !productId) {
+            logger.warn(`Missing fields: userId=${userId}, planId=${planId}, productId=${productId}`);
             res.status(400).json({ error: 'Dados incompletos: userId, planId e productId são obrigatórios' });
             return;
         }
 
         // termsAccepted is legally required — cannot create a consortium contract without consent
         if (termsAccepted !== true) {
+            logger.warn(`Terms not accepted for user: ${userId}`);
             res.status(400).json({ error: 'Você deve aceitar os termos e condições para criar um contrato.' });
             return;
         }
 
         // 3. Validar Ownership
         if (userId !== user.userId) {
+            logger.warn(`Ownership mismatch: requested=${userId}, actual=${user.userId}`);
             res.status(403).json({ error: 'Acesso negado: você só pode criar contratos para si mesmo' });
             return;
         }
@@ -343,6 +364,7 @@ router.post('/subscriptions', authenticate, async (req: Request, res: Response) 
             select: { kycStatus: true }
         });
         if (userRecord?.kycStatus === 'REJECTED') {
+            logger.warn(`KYC is REJECTED for user: ${userId}`);
             res.status(403).json({ error: 'Seu cadastro foi reprovado. Entre em contato com o suporte para regularizar sua situação.' });
             return;
         }
@@ -358,6 +380,7 @@ router.post('/subscriptions', authenticate, async (req: Request, res: Response) 
             }
         });
         if (activeCount >= MAX_ACTIVE_SUBSCRIPTIONS) {
+            logger.warn(`Max subscriptions reached for user: ${userId} (${activeCount})`);
             res.status(400).json({ error: `Limite de contratos ativos atingido (máximo: ${MAX_ACTIVE_SUBSCRIPTIONS})` });
             return;
         }
@@ -369,12 +392,14 @@ router.post('/subscriptions', authenticate, async (req: Request, res: Response) 
         });
 
         if (!plan) {
+            logger.warn(`Plan not found: ${planId}`);
             res.status(404).json({ error: 'Plano de consórcio não encontrado' });
             return;
         }
 
         // Fix 10: Ensure plan is active
         if (!plan.active) {
+            logger.warn(`Plan is inactive: ${planId}`);
             res.status(400).json({ error: 'O plano selecionado não está mais disponível.' });
             return;
         }
@@ -383,6 +408,7 @@ router.post('/subscriptions', authenticate, async (req: Request, res: Response) 
         // Use schema defaults as fallbacks in case the fields are 0 or not yet set.
         // Guard: durationMonths must be a positive integer to prevent division-by-zero
         if (!plan.durationMonths || plan.durationMonths <= 0) {
+            logger.warn(`Invalid plan duration: ${plan.durationMonths}`);
             res.status(400).json({ error: 'Configuração do plano inválida: duração deve ser maior que zero.' });
             return;
         }
@@ -390,6 +416,7 @@ router.post('/subscriptions', authenticate, async (req: Request, res: Response) 
         const minDuration = plan.product.minDuration || 12;
         const maxDuration = plan.product.maxDuration || 60;
         if (plan.durationMonths < minDuration || plan.durationMonths > maxDuration) {
+            logger.warn(`Duration out of bounds: ${plan.durationMonths} (min: ${minDuration}, max: ${maxDuration})`);
             res.status(400).json({
                 error: `Duração do plano (${plan.durationMonths} meses) está fora dos limites permitidos para este produto (${minDuration}–${maxDuration} meses)`
             });
@@ -398,6 +425,7 @@ router.post('/subscriptions', authenticate, async (req: Request, res: Response) 
 
         // Verificar se o plano corresponde ao produto informado
         if (plan.productId !== productId) {
+            logger.warn(`Product ID mismatch: plan.productId=${plan.productId}, productId=${productId}`);
             res.status(400).json({ error: 'O plano selecionado não corresponde ao produto informado' });
             return;
         }

@@ -14,6 +14,10 @@ class ContractProvider with ChangeNotifier {
 
   List<ActiveContract> _activeContracts = [];
   bool _isLoading = false;
+  DateTime? _lastLoadTime; // Cache: prevents hammering the API
+
+  // Cooldown: won't re-fetch from server more than once per 30 seconds
+  static const _cacheDuration = Duration(seconds: 30);
 
   // Checkout flow state
   String? _currentSubscriptionId;
@@ -118,8 +122,8 @@ class ContractProvider with ChangeNotifier {
           }
         }
 
-        // Refresh from server
-        await loadUserContracts(userId: userId);
+        // Refresh from server (force: bypass 30s cooldown — we just created a contract)
+        await loadUserContracts(userId: userId, force: true);
       } else {
         throw Exception(
             result?['error'] ?? 'Erro desconhecido ao criar contrato');
@@ -138,8 +142,18 @@ class ContractProvider with ChangeNotifier {
     required String userId,
     List<Product>? products,
     bool notifyLoading = true,
+    bool force = false, // set true to bypass cooldown (e.g. after contract creation)
   }) async {
     if (userId.isEmpty) return;
+
+    // Throttle: skip API call if last fetch was less than 30 seconds ago
+    if (!force && _lastLoadTime != null) {
+      final elapsed = DateTime.now().difference(_lastLoadTime!);
+      if (elapsed < _cacheDuration) {
+        debugPrint('ContractProvider: Skipping load — cache valid (${elapsed.inSeconds}s ago)');
+        return;
+      }
+    }
 
     if (notifyLoading) {
       _isLoading = true;
@@ -148,11 +162,24 @@ class ContractProvider with ChangeNotifier {
 
     try {
       final serverContracts = await _apiService.getUserContracts(userId);
+      _lastLoadTime = DateTime.now(); // Update cache timestamp after successful call
 
       if (serverContracts.isNotEmpty) {
-        _activeContracts = serverContracts
-            .map((json) => ActiveContract.fromJson(json))
-            .toList();
+        final parsed = <ActiveContract>[];
+        for (final json in serverContracts) {
+          try {
+            final contract = ActiveContract.fromJson(json);
+            // Skip contracts whose product was deleted (id will be empty string)
+            if (contract.product.id.isEmpty) {
+              debugPrint('ContractProvider: Skipping orphan contract (deleted product)');
+              continue;
+            }
+            parsed.add(contract);
+          } catch (e) {
+            debugPrint('ContractProvider: Skipping malformed contract: $e');
+          }
+        }
+        _activeContracts = parsed;
 
         await _storageService.clearActiveContracts();
         for (var contract in _activeContracts) {
