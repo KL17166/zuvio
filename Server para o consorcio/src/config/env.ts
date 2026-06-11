@@ -46,6 +46,15 @@ const envSchema = z.object({
     // Payload Encryption (AES-256)
     PAYLOAD_ENCRYPTION_SECRET: z.string().min(32, 'PAYLOAD_ENCRYPTION_SECRET must be at least 32 characters').default('super-secret-payload-encryption-key!'),
     ENCRYPTION_BYPASS_SECRET: z.string().default('admin-bypass-123'),
+
+    // Bootstrap payload key for pre-auth requests (login/register).
+    // Must match PAYLOAD_BOOTSTRAP_KEY in Flutter --dart-define at build time.
+    // 64 hex characters (= 32 bytes).
+    PAYLOAD_BOOTSTRAP_KEY: z.string().length(64, 'PAYLOAD_BOOTSTRAP_KEY must be 64 hex chars').optional(),
+
+    // Cloudflare Tunnel URL — exact origin allowed by CORS (e.g. https://xxx.trycloudflare.com).
+    // Never uses a wildcard pattern. Leave empty in production if not using a tunnel.
+    CLOUDFLARE_TUNNEL_URL: z.string().url().optional(),
 });
 
 const _env = envSchema.safeParse(process.env);

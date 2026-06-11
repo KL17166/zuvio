@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/database';
 import { authenticate, AuthPayload } from '../middlewares/authMiddleware';
+import { transactionRateLimiter } from '../middlewares/rateLimitMiddleware';
 import { PixGoService } from '../services/gateways/pixGoService';
 import { SigiloPayService } from '../services/gateways/sigiloPayService';
 import { checkOwnership } from '../middlewares/idorMiddleware';
@@ -272,7 +273,7 @@ router.get('/subscription/:subscriptionId', authenticate, async (req: Request, r
 // POST /api/subscriptions/:subscriptionId/cancel - Cancelar contrato (cliente)
 // Only PENDING subscriptions can be self-cancelled (no payment made yet).
 // ACTIVE/CONTEMPLATED subscriptions require admin intervention.
-router.post('/subscriptions/:subscriptionId/cancel', authenticate, async (req: Request, res: Response) => {
+router.post('/subscriptions/:subscriptionId/cancel', authenticate, transactionRateLimiter, async (req: Request, res: Response) => {
     const user = req.user as AuthPayload;
     try {
         const subscriptionId = req.params.subscriptionId as string;
@@ -322,7 +323,7 @@ router.post('/subscriptions/:subscriptionId/cancel', authenticate, async (req: R
 // ========================================
 
 // POST /api/subscriptions - Criar novo contrato (Requer token no body)
-router.post('/subscriptions', authenticate, async (req: Request, res: Response) => {
+router.post('/subscriptions', authenticate, transactionRateLimiter, async (req: Request, res: Response) => {
     try {
         const user = req.user as AuthPayload;
         const { userId, planId, productId, token, termsAccepted, documentFrontUrl, documentBackUrl, selfieUrl } = req.body;
@@ -563,7 +564,7 @@ router.post('/subscriptions', authenticate, async (req: Request, res: Response) 
 });
 
 // POST /api/bids - Criar lance (valida ownership via subscriptionId no body)
-router.post('/bids', authenticate, async (req: Request, res: Response) => {
+router.post('/bids', authenticate, transactionRateLimiter, async (req: Request, res: Response) => {
     // Validação de ownership explícita para bids
     const user = req.user as AuthPayload;
     const { subscriptionId } = req.body;
@@ -731,7 +732,7 @@ router.get('/bids/:userId', authenticate, checkOwnership('user', 'userId'), asyn
 
 // POST /api/payments/:installmentId/pay - Registrar pagamento
 // Direct payment marking is disabled — use the PIX/Boleto gateway routes instead.
-router.post('/payments/:installmentId/pay', authenticate, (_req: Request, res: Response) => {
+router.post('/payments/:installmentId/pay', authenticate, transactionRateLimiter, (_req: Request, res: Response) => {
     res.status(403).json({ error: 'Funcionalidade desativada para usuários. Pagamentos devem ser processados via gateway.' });
 });
 
@@ -791,7 +792,7 @@ router.get('/payments/:subscriptionId', authenticate, async (req: Request, res: 
 });
 
 // POST /api/payments/:installmentId/pix - Gerar Pix
-router.post('/payments/:installmentId/pix', authenticate, async (req: Request, res: Response) => {
+router.post('/payments/:installmentId/pix', authenticate, transactionRateLimiter, async (req: Request, res: Response) => {
     const user = req.user as AuthPayload;
     try {
         const installmentId = req.params.installmentId as string;
@@ -979,7 +980,7 @@ router.post('/payments/:installmentId/pix', authenticate, async (req: Request, r
 });
 
 // POST /api/payments/:installmentId/boleto - Gerar Boleto
-router.post('/payments/:installmentId/boleto', authenticate, async (req: Request, res: Response) => {
+router.post('/payments/:installmentId/boleto', authenticate, transactionRateLimiter, async (req: Request, res: Response) => {
     const user = req.user as AuthPayload;
     try {
         const installmentId = req.params.installmentId as string;

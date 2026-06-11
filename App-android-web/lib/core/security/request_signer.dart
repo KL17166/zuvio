@@ -1,10 +1,11 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:crypto/crypto.dart';
 
 /// Generates HMAC-SHA256 signatures for API requests.
 ///
-/// Signs every request with `timestamp|method|path|bodyHash`
-/// and adds `X-Request-Signature` + `X-Request-Timestamp` headers.
+/// Signs every request with `timestamp|nonce|method|path|bodyHash`
+/// and adds `X-Request-Signature`, `X-Request-Timestamp`, and `X-Request-Nonce` headers.
 ///
 /// Two-tier secret strategy:
 ///   1. Authenticated requests supply [sessionSecret] received from the server
@@ -18,6 +19,12 @@ class RequestSigner {
   static const String _staticSecret =
       'BYanklymIzZeTM7DcXVJ0Fdvfb9woAuQNphWL38EijKq2C6P';
 
+  static String _generateNonce() {
+    final random = Random.secure();
+    final values = List<int>.generate(16, (i) => random.nextInt(256));
+    return values.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+  }
+
   /// Returns security headers to include with every API request.
   ///
   /// Pass [sessionSecret] for authenticated requests (received from server on
@@ -30,12 +37,13 @@ class RequestSigner {
   }) {
     final secret = sessionSecret ?? _staticSecret;
     final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+    final nonce = _generateNonce();
 
     // Hash the body (or empty string)
     final bodyHash = sha256.convert(utf8.encode(body ?? '')).toString();
 
     // Build the payload to sign
-    final payload = '$timestamp|$method|$path|$bodyHash';
+    final payload = '$timestamp|$nonce|$method|$path|$bodyHash';
 
     // HMAC-SHA256
     final hmac = Hmac(sha256, utf8.encode(secret));
@@ -44,6 +52,7 @@ class RequestSigner {
     return {
       'X-Request-Signature': signature,
       'X-Request-Timestamp': timestamp,
+      'X-Request-Nonce': nonce,
     };
   }
 }

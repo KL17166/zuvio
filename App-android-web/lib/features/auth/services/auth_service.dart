@@ -6,6 +6,7 @@ import 'package:katari/core/services/storage_service.dart';
 import 'package:katari/core/services/device_service.dart';
 import 'package:katari/core/security/request_signer.dart';
 import 'package:katari/core/security/payload_obfuscator.dart';
+import 'package:katari/core/security/device_binding_service.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -36,7 +37,9 @@ class AuthService {
 
       // Ensure device info is loaded for security headers
       await _deviceService.init();
+      final bindingToken = await DeviceBindingService().getBindingToken();
 
+      // Encrypt with bootstrap key (no session yet during login)
       final rawBodyStr = jsonEncode({'cpf': cpf, 'password': password});
       final bodyStr = PayloadObfuscator.encrypt(rawBodyStr);
 
@@ -45,6 +48,7 @@ class AuthService {
         headers: {
           'Content-Type': 'application/json',
           ..._deviceService.getHeaders(),
+          'X-Device-Binding': bindingToken,
           ...RequestSigner.sign(
               method: 'POST', path: ApiConstants.authLogin, body: bodyStr),
         },
@@ -59,11 +63,16 @@ class AuthService {
         // Save JWT
         await _storageService.saveToken(token);
 
-        // Save per-session signing secret (replaces static APK-embedded secret
-        // for all subsequent authenticated requests).
+        // Save per-session signing secret
         final signingSecret = data['signingSecret'] as String?;
         if (signingSecret != null && signingSecret.isNotEmpty) {
           await _storageService.saveSigningSecret(signingSecret);
+        }
+
+        // Save per-session payload encryption key (replaces hardcoded bootstrap key)
+        final payloadSecret = data['payloadSecret'] as String?;
+        if (payloadSecret != null && payloadSecret.isNotEmpty) {
+          await _storageService.savePayloadSecret(payloadSecret);
         }
 
         // Save User Info
@@ -118,6 +127,7 @@ class AuthService {
         final url =
             Uri.parse('${ApiConstants.baseUrl}${ApiConstants.authLogout}');
         await _deviceService.init();
+        final bindingToken = await DeviceBindingService().getBindingToken();
 
         await http
             .post(
@@ -126,6 +136,7 @@ class AuthService {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer $token',
                 ..._deviceService.getHeaders(),
+                'X-Device-Binding': bindingToken,
                 // Use the session secret so the server can verify the request
                 // even during the logout call itself.
                 ...RequestSigner.sign(
@@ -140,8 +151,9 @@ class AuthService {
     } catch (e) {
       debugPrint('AuthService: signOut network call failed (ignored): $e');
     } finally {
-      // Always clear the session secret locally, regardless of network outcome.
+      // Always clear session secrets locally, regardless of network outcome.
       await _storageService.removeSigningSecret();
+      await _storageService.removePayloadSecret();
     }
   }
 
@@ -164,7 +176,9 @@ class AuthService {
 
       // Ensure device info is loaded for security headers
       await _deviceService.init();
+      final bindingToken = await DeviceBindingService().getBindingToken();
 
+      // Encrypt with bootstrap key (no session yet during registration)
       final rawBodyStr = jsonEncode({
         'name': name,
         'email': email,
@@ -180,6 +194,7 @@ class AuthService {
         headers: {
           'Content-Type': 'application/json',
           ..._deviceService.getHeaders(),
+          'X-Device-Binding': bindingToken,
           ...RequestSigner.sign(
               method: 'POST', path: ApiConstants.authRegister, body: bodyStr),
         },

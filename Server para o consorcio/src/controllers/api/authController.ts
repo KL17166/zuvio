@@ -121,21 +121,28 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
             { algorithm: 'HS256', expiresIn: process.env.JWT_EXPIRES_IN || '1h' } as any
         );
 
-        // ── Per-session signing secret ─────────────────────────────────────────
-        // A unique 32-byte secret tied to this login session replaces the static
-        // APK-embedded secret for all authenticated requests. Even if an attacker
-        // extracts the static secret from the APK, they cannot forge requests on
-        // behalf of a logged-in user without also stealing this per-session secret.
+        // ── Per-session signing secret ─────────────────────────────────────
         const signingSecret = crypto.randomBytes(32).toString('hex');
+        // ── Per-session payload encryption key ────────────────────────────
+        // A unique AES key for this login session replaces the build-time
+        // bootstrap key embedded in the APK for all authenticated requests.
+        const payloadSecret = crypto.randomBytes(32).toString('hex');
 
-        // Store in Redis with the same TTL as the JWT so it expires automatically
+        // Extract the device binding token from headers
+        const deviceBindingToken = req.headers['x-device-binding'] as string;
+
+        // Store both in Redis with the same TTL as the JWT
         if (redisClient) {
             try {
                 const decoded = jwt.decode(token) as any;
                 const ttlSeconds = Math.max((decoded?.exp ?? 0) - Math.floor(Date.now() / 1000), 60);
                 await redisClient.setEx(`signing:session:${jti}`, ttlSeconds, signingSecret);
+                await redisClient.setEx(`payload:session:${jti}`, ttlSeconds, payloadSecret);
+                if (deviceBindingToken) {
+                    await redisClient.setEx(`device:binding:${jti}`, ttlSeconds, deviceBindingToken);
+                }
             } catch (redisErr) {
-                logger.warn('Failed to store session signing secret in Redis — falling back to static secret', { userId: user.id });
+                logger.warn('Failed to store session secrets in Redis — falling back to static secrets', { userId: user.id });
             }
         }
 
@@ -162,9 +169,10 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
         res.json({
             token,
-            // Per-session signing secret — Flutter stores this securely and uses it
-            // instead of the static APK-embedded secret for all subsequent requests.
             signingSecret,
+            // Per-session AES-256-GCM key — Flutter uses this instead of the
+            // build-time bootstrap key for all subsequent authenticated requests.
+            payloadSecret,
             user: {
                 id: user.id,
                 name: user.name,
@@ -427,8 +435,9 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
                     const ttlSeconds = Math.max(decoded.exp - Math.floor(Date.now() / 1000), 1);
                     // Blacklist: reject any future request carrying this JTI
                     await redisClient.setEx(`jti:blacklist:${decoded.jti}`, ttlSeconds, '1');
-                    // Delete the per-session signing secret immediately
+                    // Delete both per-session secrets immediately
                     await redisClient.del(`signing:session:${decoded.jti}`);
+                    await redisClient.del(`payload:session:${decoded.jti}`);
                 }
             } catch (redisErr) {
                 // Log but do not fail the logout — client will discard the token regardless

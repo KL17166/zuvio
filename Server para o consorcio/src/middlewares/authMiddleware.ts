@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { redisClient } from '../config/redis';
 import { logger } from '../config/logger';
+import { deviceBindingMiddleware } from './deviceBindingMiddleware';
 
 export interface AuthPayload {
     userId: string;
@@ -70,7 +71,9 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
         }
 
         req.user = payload;
-        next();
+        
+        // Pass control to the Device Binding Middleware to verify hardware tokens
+        return deviceBindingMiddleware(req, res, next);
     } catch (error) {
         return res.status(401).json({
             error: 'Token invalido ou expirado',

@@ -41,11 +41,12 @@ export const requestSignatureMiddleware = async (req: Request, res: Response, ne
 
     const signature = req.headers['x-request-signature'] as string;
     const timestamp = req.headers['x-request-timestamp'] as string;
+    const nonce = req.headers['x-request-nonce'] as string;
 
     // Reject requests without HMAC signature headers
-    if (!signature || !timestamp) {
-        logger.warn(`🔒 MISSING SIGNATURE: ${req.path} | IP: ${req.ip}`);
-        return res.status(403).json({ error: 'Assinatura de requisição obrigatória' });
+    if (!signature || !timestamp || !nonce) {
+        logger.warn(`🔒 MISSING SIGNATURE HEADERS: ${req.path} | IP: ${req.ip}`);
+        return res.status(403).json({ error: 'Assinatura de requisição incompleta (faltam headers)' });
     }
 
     const ts = parseInt(timestamp, 10);
@@ -56,8 +57,29 @@ export const requestSignatureMiddleware = async (req: Request, res: Response, ne
     // Anti-replay: reject requests older than 30 seconds
     const age = Math.abs(Date.now() - ts);
     if (age > MAX_AGE_MS) {
-        logger.warn(`🔒 REPLAY REJECTED: ${req.path} | Age: ${age}ms | IP: ${req.ip}`);
+        logger.warn(`🔒 REPLAY REJECTED (STALE): ${req.path} | Age: ${age}ms | IP: ${req.ip}`);
         return res.status(403).json({ error: 'Request expired', retryable: true });
+    }
+
+    // Anti-replay: enforce nonce uniqueness within the MAX_AGE_MS window
+    if (redisClient) {
+        try {
+            const nonceKey = `nonce:${nonce}`;
+            // SETNX returns 1 if key was set, 0 if it already existed
+            const setnxResult = await redisClient.set(nonceKey, '1', {
+                NX: true,
+                PX: MAX_AGE_MS + 5000 // Keep slightly longer than max age to handle clock skew
+            });
+            
+            if (!setnxResult) {
+                logger.warn(`🔒 REPLAY REJECTED (NONCE REUSED): ${req.path} | Nonce: ${nonce} | IP: ${req.ip}`);
+                return res.status(403).json({ error: 'Replay attack detected (nonce reused)' });
+            }
+        } catch (e) {
+            logger.error(`Redis failure during nonce check: ${e}`);
+            // Fail open on Redis errors to prevent widespread outages, 
+            // relying on timestamp window for basic protection.
+        }
     }
 
     // ── Per-session signing secret ─────────────────────────────────────────────
@@ -100,7 +122,7 @@ export const requestSignatureMiddleware = async (req: Request, res: Response, ne
         .update(bodyString)
         .digest('hex');
 
-    const payload = `${timestamp}|${req.method}|${req.path}|${bodyHash}`;
+    const payload = `${timestamp}|${nonce}|${req.method}|${req.path}|${bodyHash}`;
     const expected = crypto.createHmac('sha256', effectiveSecret)
         .update(payload)
         .digest('hex');

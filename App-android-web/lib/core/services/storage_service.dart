@@ -23,6 +23,10 @@ class StorageService {
   // Per-session HMAC signing secret (received from server on login)
   static const String _signingSecretKey = 'signing_secret';
 
+  // Per-session AES-256-GCM payload encryption key (received from server on login).
+  // Replaces the hardcoded bootstrap key for all authenticated requests.
+  static const String _payloadSecretKey = 'payload_secret';
+
   // Sensitive Data Keys
   static const String _userNameKey = 'user_name';
   static const String _userEmailKey = 'user_email';
@@ -73,6 +77,23 @@ class StorageService {
 
   Future<void> removeSigningSecret() async {
     await _secureStorage.delete(key: _signingSecretKey);
+  }
+
+  // ========================================
+  // PER-SESSION PAYLOAD ENCRYPTION KEY (SECURE)
+  // Received from the server on login. Used by PayloadObfuscator instead of
+  // the build-time bootstrap key for all authenticated requests.
+  // ========================================
+  Future<void> savePayloadSecret(String secret) async {
+    await _secureStorage.write(key: _payloadSecretKey, value: secret);
+  }
+
+  Future<String?> getPayloadSecret() async {
+    return await _secureStorage.read(key: _payloadSecretKey);
+  }
+
+  Future<void> removePayloadSecret() async {
+    await _secureStorage.delete(key: _payloadSecretKey);
   }
 
   // ========================================

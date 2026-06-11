@@ -135,8 +135,10 @@ app.use(cors({
             }
         }
 
-        // Allow Cloudflare Tunnel URLs (dynamic, change each session)
-        if (origin.endsWith('.trycloudflare.com')) {
+        // Allow Cloudflare Tunnel URLs — only the specific tunnel configured in CLOUDFLARE_TUNNEL_URL
+        // (never a wildcard, to prevent any trycloudflare.com subdomain from being trusted)
+        const tunnelUrl = env.CLOUDFLARE_TUNNEL_URL?.trim();
+        if (tunnelUrl && origin === tunnelUrl) {
             return callback(null, true);
         }
 
@@ -399,7 +401,8 @@ app.get('/health', async (req, res) => {
     const memUsage = process.memoryUsage();
     let dbStatus = 'ok';
     try {
-        await prisma.$queryRawUnsafe('SELECT 1');
+        // Use $queryRaw tagged template (safe — no user input interpolated)
+        await prisma.$queryRaw`SELECT 1`;
     } catch {
         dbStatus = 'error';
     }
