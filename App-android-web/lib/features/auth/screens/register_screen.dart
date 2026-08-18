@@ -174,7 +174,6 @@ class _RegisterScreenState extends State<RegisterScreen>
   }
 
   bool _isValidCpf(String cpf) {
-    if (cpf == '11111111111') return true;
     if (cpf.length != 11) return false;
     if (RegExp(r'^(\d)\1*$').hasMatch(cpf)) return false;
 

@@ -95,11 +95,11 @@ app.use(compression({
 
 // Local WAF Middleware
 import { wafMiddleware } from './middlewares/wafMiddleware';
-app.use(wafMiddleware);
+// app.use(wafMiddleware); // Disabled for AUDIT MODE
 
 // Anti-Scraping / Anti-Dump Protection (HTTrack, wget, site copiers)
 import { antiScrapingMiddleware } from './middlewares/antiScrapingMiddleware';
-app.use(antiScrapingMiddleware);
+// app.use(antiScrapingMiddleware); // Disabled for AUDIT MODE
 
 // Trust proxy (required for rate-limit behind load balancers/tunnels)
 app.set('trust proxy', 1);
@@ -160,7 +160,7 @@ app.use(cors({
 // Rate Limiting - Geral (IP + Token se possível - aqui simplificado por IP)
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 300, // 300 requests por IP em 15 min (Flutter faz várias chamadas legítimas)
+    max: 30000, // AUDIT MODE: 300 -> 30000
     message: { error: 'Muitas requisições. Tente novamente em 15 minutos.' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -169,7 +169,7 @@ const generalLimiter = rateLimit({
 // Rate Limiting - Auth Admin (Muito Estrito)
 const adminAuthLimiter = rateLimit({
     windowMs: 10 * 60 * 1000, // 10 minutos
-    max: 5, // Apenas 5 tentativas
+    max: 5000, // AUDIT MODE: 5 -> 5000
     message: { error: 'Muitas tentativas de login admin. Bloqueado por 10 minutos.' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -179,7 +179,7 @@ const adminAuthLimiter = rateLimit({
 // Rate Limiting - Auth API
 const apiAuthLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 10,
+    max: 10000, // AUDIT MODE: 10 -> 10000
     message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -188,7 +188,7 @@ const apiAuthLimiter = rateLimit({
 // Rate Limiting - Register (Prevent account spam)
 const apiRegisterLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,  // 1 hour
-    max: 5,                     // 5 registrations per hour per IP
+    max: 5000,                 // AUDIT MODE: 5 -> 5000
     message: { error: 'Muitos registros. Tente novamente em 1 hora.' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -197,7 +197,7 @@ const apiRegisterLimiter = rateLimit({
 // Rate Limiting - Admin Panel (Geral)
 const adminGeneralLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 300, // Aumentado para 300 para não bloquear admin legíto trabalhando
+    max: 30000, // AUDIT MODE: 300 -> 30000
     message: 'Muitas requisições ao painel admin. Tente novamente em 15 minutos.',
     standardHeaders: true,
     legacyHeaders: false,
@@ -218,7 +218,7 @@ const userIdFromBearer = (req: any): string => {
 // Rate Limiting - Payment generation (PIX / Boleto): 3 per 5 minutes per user
 const paymentGenerationLimiter = rateLimit({
     windowMs: 5 * 60 * 1000,
-    max: 3,
+    max: 3000, // AUDIT MODE: 3 -> 3000
     keyGenerator: userIdFromBearer,
     message: { error: 'Muitas solicitações de pagamento. Aguarde 5 minutos.' },
     standardHeaders: true,
@@ -228,7 +228,7 @@ const paymentGenerationLimiter = rateLimit({
 // Rate Limiting - Bid creation: 5 per 10 minutes per user
 const bidLimiter = rateLimit({
     windowMs: 10 * 60 * 1000,
-    max: 5,
+    max: 5000, // AUDIT MODE: 5 -> 5000
     keyGenerator: userIdFromBearer,
     message: { error: 'Muitos lances registrados. Aguarde 10 minutos.' },
     standardHeaders: true,
@@ -238,7 +238,7 @@ const bidLimiter = rateLimit({
 // Rate Limiting - Subscription READ (listing): 120 per 15 min per user — lenient for normal usage
 const subscriptionReadLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 120,
+    max: 120000, // AUDIT MODE: 120 -> 120000
     keyGenerator: userIdFromBearer,
     message: { error: 'Muitas consultas de contratos. Aguarde alguns minutos.' },
     standardHeaders: true,
@@ -248,7 +248,7 @@ const subscriptionReadLimiter = rateLimit({
 // Rate Limiting - Subscription CREATE: 3 per hour per user (prevents spam)
 const subscriptionCreateLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
-    max: 3,
+    max: 3000, // AUDIT MODE: 3 -> 3000
     keyGenerator: userIdFromBearer,
     message: { error: 'Muitos contratos criados. Aguarde 1 hora.' },
     standardHeaders: true,
@@ -258,7 +258,7 @@ const subscriptionCreateLimiter = rateLimit({
 // Rate Limiting - KYC submission: 5 per hour per user
 const kycSubmitLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
-    max: 5,
+    max: 5000, // AUDIT MODE: 5 -> 5000
     keyGenerator: userIdFromBearer,
     message: { error: 'Muitas submissões de KYC. Aguarde 1 hora.' },
     standardHeaders: true,
@@ -285,7 +285,7 @@ app.use('/admin/login', adminAuthLimiter); // Rate limit estrito no login admin
 // (same session across different IPs still gets limited)
 const sessionLimiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
-    max: 120,                 // 120 requests per minute per session
+    max: 120000,             // AUDIT MODE: 120 -> 120000
     keyGenerator: (req) => (req.session as any)?.id || req.socket.remoteAddress || 'anon',
     message: { error: 'Muitas requisições por sessão. Aguarde um momento.' },
     standardHeaders: true,
@@ -310,15 +310,15 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // JS Challenge for admin panel pages (blocks bots with fake User-Agents)
 import { jsChallengeMiddleware } from './middlewares/jsChallengeMiddleware';
-app.use('/admin', jsChallengeMiddleware);
+// app.use('/admin', jsChallengeMiddleware); // Disabled for AUDIT MODE
 
 // HMAC Request Signature Validation (anti-replay / anti-tampering)
 import { requestSignatureMiddleware } from './middlewares/requestSignatureMiddleware';
-app.use(requestSignatureMiddleware);
+// app.use(requestSignatureMiddleware); // Disabled for AUDIT MODE
 
 // Payload Obfuscation Middleware (Encryption/Decryption)
 import { payloadObfuscationMiddleware } from './middlewares/payloadObfuscationMiddleware';
-app.use(payloadObfuscationMiddleware);
+// app.use(payloadObfuscationMiddleware); // Disabled for AUDIT MODE
 
 // View Engine Setup
 const viewsPath = path.join(__dirname, 'views');

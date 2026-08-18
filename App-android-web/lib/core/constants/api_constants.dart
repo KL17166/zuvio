@@ -1,6 +1,6 @@
-class ApiConstants {
-  // âœ… API CONFIGURATION (Updated automatically by start_tunnel.ps1)
-  static const String _tunnelUrl = 'https://psychology-turned-physiology-underground.trycloudflare.com';
+﻿class ApiConstants {
+  // Ã¢Å“â€¦ API CONFIGURATION (Updated automatically by start_tunnel.ps1)
+  static const String _tunnelUrl = 'https://citizenship-experimental-iowa-brighton.trycloudflare.com';
 
   static String get baseUrl {
     return _tunnelUrl;

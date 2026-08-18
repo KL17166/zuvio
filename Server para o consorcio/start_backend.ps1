@@ -173,7 +173,7 @@ function Start-PostgresDocker {
 
     $dockerAvailable = $false
     try {
-        $dockerVer = docker version --format "{{.Server.Version}}" 2>&1
+        $null = docker version --format "{{.Server.Version}}" 2>&1
         if ($LASTEXITCODE -eq 0) {
             $dockerAvailable = $true
         }
